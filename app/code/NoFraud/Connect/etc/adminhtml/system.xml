@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+
+    <!-- TODO: Place NoFraud configuration under Stores > Sales > Fraud Prevention (along with Signifyd)?-->
+
+    <system>
+        <tab id="nofraud" translate="label" sortOrder="512">
+            <label>NoFraud</label>
+        </tab>
+        <section id="nofraud_connect" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>Connect</label>
+            <tab>nofraud</tab>
+            <resource>NoFraud_Connect::config</resource>
+            <group id="general" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>General</label>
+                <field id="enabled" translate="label" type="select" 
+                    sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enabled?</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="api_token" translate="label" type="obscure" 
+                    sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Direct API Token</label>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                </field>
+                <field id="sandbox_enabled" translate="label" type="select" 
+                    sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Sandbox Mode?</label>
+                    <comment>While enabled, API requests are sent to apitest.nofraud.com.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>
