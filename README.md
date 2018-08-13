@@ -44,8 +44,9 @@ The cron job could look like:
 In the current implementation, the NoFraud API could be unavailable at the time of purchase, which could (even if rarely) present a hole for fraudulent transactions to pass through.
 
 By queueing API calls, we can:
-  * ensure that NoFraud is available before sending the request, and...
-  * ensure that a proper response was received before modifying the Order object.
+
+  * ...ensure that NoFraud is available before sending the request.
+  * ...ensure that a proper response was received before modifying the Order object.
 
 #### Security Implications
 
