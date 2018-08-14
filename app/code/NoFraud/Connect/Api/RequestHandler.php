@@ -46,21 +46,23 @@ class RequestHandler
     /**
      * @param array  $params | NoFraud request object parameters
      * @param string $apiUrl | The URL to send to
-     * @param string $urlAddition | Any additional subdirectory or URL parameters
      */
-    public function send( $params, $apiUrl, $urlAddition = '' )
+    public function send( $params, $apiUrl )
     {
-        $apiUrl .= $urlAddition;
-
-        $body = json_encode($params);
         $ch = curl_init();
-        
-        curl_setopt($ch, CURLOPT_POST, true);
+
+        // Do not set POST params for Order status requests:
+        //
+        if ( isset( $params['status_request'] ) == false ){
+            $body = json_encode($params);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($body)));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        }
+
         curl_setopt($ch, CURLOPT_URL, $apiUrl );
         curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($body)));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
 
         $result          = curl_exec($ch);
         $responseBody    = json_decode($result, true);
@@ -79,6 +81,30 @@ class RequestHandler
 
         return $response;
     }
+
+    public function noFraudRecordAlreadyExists( $order, $apiToken )
+    {
+        $response = $this->getOrderStatus( $order, $apiToken );
+
+        return isset( $response['body']['decision'] );
+    }
+
+    public function getOrderStatus( $order, $apiToken )
+    {
+        $transactionId = $order->getIncrementId();
+
+        // Order status queries (even for records created via the sandbox url) must be sent through the production API url:
+        //
+        $apiUrl = self::PRODUCTION_URL . 'status/' . $apiToken . '/' . $transactionId ;
+
+        $response = $this->send( [ 'status_request' => true ], $apiUrl );
+
+        // DEBUG
+        $this->logger->info( print_r( ["Status request for {$transactionId}" => $response], true ) );
+
+        return $response;
+    }
+
 
     protected function buildBaseParams( $payment, $order, $apiToken )
     {

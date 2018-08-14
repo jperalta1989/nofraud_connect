@@ -3,7 +3,7 @@
 ## Phase One Implementation
 ---------------------------
 
-Currently, as NoFraud is interested only in post-gateway vetting, the module has a single observer listening for `sales_order_place_after` (trimmed down from the original module's four observers).
+Currently, as NoFraud is interested only in post-gateway vetting, the module has a single observer listening for `sales_order_payment_place_end` (trimmed down from the original module's four observers).
 
 The Oberver receives a `\NoFraud\Connect\Api\RequestHandler` and `ResponseHandler` on construction.
 
@@ -12,8 +12,9 @@ It also receives a Config reader ( `\NoFraud\Connect\Helper\Config` ) and a cust
 Execution currently looks like this:
 
 1. If module is disabled from Admin Config, do nothing.
-2. Get the Order from the Event ( `\Magento\Sales\Model\Order` ).
-3. Get the Payment from the Order ( `\Magento\Sales\Model\Order\Payment` ).
+2. Get the Payment from the Event ( `\Magento\Sales\Model\Order\Payment` ).
+3. Get the Order from the Payment ( `\Magento\Sales\Model\Order` ).
+3. If a NoFraud record for the Order already exists, then do nothing (`sales_order_payment_place_end` sometimes fires twice, so this condition avoids duplicate API calls).
 4. Build the NoFraud API request from the Payment and Order objects ( `$this->requestHandler->build()` ).
 5. Get the appropriate API URL from `RequestHandler` ( e.g. `$this->requestHandler::SANDBOX_URL` ) based on Admin Config setting.
 6. Send the request ( `$this->requestHandler->send()` ) and get the response.
