@@ -45,20 +45,18 @@ class ResponseHandler
         $id       = $responseBody['id'];
         $decision = $responseBody['decision'];
 
-        $comment = "NoFraud decision: " . strtoupper($decision) . "</br>";
+        $comment = "NoFraud decision: " . strtoupper($decision) . ' ( ' . $this->noFraudLink( $id, 'view report' ) . ' )' ;
         
         if ($decision == "review") {
-            $comment .= "(We're already looking into it on your behalf.)";
+            $comment .= "<br>This transaction is being looked into on your behalf.";
         }
-
-        $comment .= "<br>You may view the report " . $this->linkToReport( $id, 'here' ) . '.' ;
 
         return $comment;
     }
 
-    protected function linkToReport( $transactionId, $linkText )
+    protected function noFraudLink( $transactionId, $linkText )
     {
-        return '<a target="_blank" href="https://portal.nofraud.com/transaction/' . $transactionId . ">{$linkText}</a>" ;
+        return "<a target=\"_blank\" href=\"https://portal.nofraud.com/transaction/{$transactionId}\">{$linkText}</a>" ;
     }
 
 }
