@@ -82,20 +82,18 @@ class RequestHandler
         return $response;
     }
 
-    public function noFraudRecordAlreadyExists( $order, $apiToken )
+    public function noFraudRecordAlreadyExists( $order, $apiToken, $apiUrl )
     {
-        $response = $this->getOrderStatus( $order, $apiToken );
+        $response = $this->getOrderStatus( $order, $apiToken, $apiUrl );
 
         return isset( $response['body']['decision'] );
     }
 
-    public function getOrderStatus( $order, $apiToken )
+    public function getOrderStatus( $order, $apiToken, $apiUrl )
     {
         $transactionId = $order->getIncrementId();
 
-        // Order status queries (even for records created via the sandbox url) must be sent through the production API url:
-        //
-        $apiUrl = self::PRODUCTION_URL . 'status/' . $apiToken . '/' . $transactionId ;
+        $apiUrl .= 'status/' . $apiToken . '/' . $transactionId ;
 
         $response = $this->send( [ 'status_request' => true ], $apiUrl );
 

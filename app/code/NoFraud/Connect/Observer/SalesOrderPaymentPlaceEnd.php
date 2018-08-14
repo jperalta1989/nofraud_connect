@@ -46,11 +46,19 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         //
         $order = $payment->getOrder();
 
+        // get NoFraud Api Token
+        //
         $apiToken = $this->configHelper->getApiToken();
+
+        // Use the NoFraud Sandbox URL if Sandbox Mode is enabled in Admin Config:
+        // 
+        $apiUrl = $this->configHelper->getSandboxMode() ?
+            $this->requestHandler::SANDBOX_URL          :
+            $this->requestHandler::PRODUCTION_URL       ;
 
         // If Order has already been assessed by NoFraud, then do nothing.
         //
-        if ( $this->requestHandler->noFraudRecordAlreadyExists( $order, $apiToken ) )
+        if ( $this->requestHandler->noFraudRecordAlreadyExists( $order, $apiToken, $apiUrl ) )
         {
             return;
         }
@@ -64,13 +72,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             $order, 
             $apiToken
         );
-
-        // Use the NoFraud Sandbox URL if Sandbox Mode is enabled in Admin Config:
-        // 
-        $apiUrl = $this->configHelper->getSandboxMode() ?
-            $this->requestHandler::SANDBOX_URL          :
-            $this->requestHandler::PRODUCTION_URL       ;
-        
+ 
         // Send the request to the NoFraud API and get the response:
         //
         $response = $this->requestHandler->send($request, $apiUrl);
