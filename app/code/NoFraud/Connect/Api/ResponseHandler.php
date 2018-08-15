@@ -76,9 +76,9 @@ class ResponseHandler
             default:
                 $comment = "We're sorry. It appears the NoFraud service was unavailable at the time of this transaction.";
                 break;
-
-            return $comment;
         }
+
+        return $comment;
     }
 
 }
