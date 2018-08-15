@@ -51,58 +51,33 @@ class RequestHandler
     {
         $ch = curl_init();
 
-        // Do not set POST params for Order status requests:
-        //
-        if ( isset( $params['status_request'] ) == false ){
-            $body = json_encode($params);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($body)));
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-        }
-
+        $body = json_encode($params);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($body)));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
         curl_setopt($ch, CURLOPT_URL, $apiUrl );
         curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
-        $result          = curl_exec($ch);
-        $responseBody    = json_decode($result, true);
-        $responseCode    = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        $httpClientError = curl_error($ch);
-        curl_close($ch);
+        $result = curl_exec($ch);
 
         $response = [
-            'http_code' => $responseCode,
-            'body'      => $responseBody,
+            'http' => [
+                'response' => [
+                    'body' => json_decode($result, true),
+                    'code' => curl_getinfo($ch, CURLINFO_RESPONSE_CODE),
+                    'time' => curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME),
+                ],
+                'client' => [
+                    'error' => curl_error($ch),
+                ],
+            ],
         ];
 
-        if ( !empty($httpClientError) ){
-            $response['http_client_error'] = $httpClientError;
-        }
+        curl_close($ch);
 
-        return $response;
+        return $this->scrubEmptyValues($response);
     }
-
-    public function noFraudRecordAlreadyExists( $order, $apiToken, $apiUrl )
-    {
-        $response = $this->getOrderStatus( $order, $apiToken, $apiUrl );
-
-        return isset( $response['body']['decision'] );
-    }
-
-    public function getOrderStatus( $order, $apiToken, $apiUrl )
-    {
-        $transactionId = $order->getIncrementId();
-
-        $apiUrl .= 'status/' . $apiToken . '/' . $transactionId ;
-
-        $response = $this->send( [ 'status_request' => true ], $apiUrl );
-
-        // DEBUG
-        $this->logger->info( print_r( ["Status request for {$transactionId}" => $response], true ) );
-
-        return $response;
-    }
-
 
     protected function buildBaseParams( $payment, $order, $apiToken )
     {
@@ -111,12 +86,13 @@ class RequestHandler
         $baseParams['nf-token']       = $apiToken;
         $baseParams['amount']         = $this->formatTotal( $order->getGrandTotal() );
         $baseParams['currency_code']  = $order->getOrderCurrencyCode();
-        $baseParams['customerIP']     = $order->getRemoteIp();
         $baseParams['shippingAmount'] = $this->formatTotal( $order->getShippingAmount() );
         $baseParams['avsResultCode']  = self::DEFAULT_AVS_CODE;
         $baseParams['cvvResultCode']  = self::DEFAULT_CVV_CODE;
 
-        if (!empty( $order->getXForwardedFor() )){
+        if (empty( $order->getXForwardedFor() )){
+            $baseParams['customerIP'] = $order->getRemoteIp();
+        } else {
             $baseParams['customerIP'] = $order->getXForwardedFor();
         }
 
@@ -221,7 +197,7 @@ class RequestHandler
         $addressParams['firstName'] = $address->getFirstname();
         $addressParams['lastName']  = $address->getLastname();
         $addressParams['company']   = $address->getCompany();
-        $addressParams['address']   = join( ' ', $address->getStreet() );
+        $addressParams['address']   = implode( ' ', $address->getStreet() );
         $addressParams['city']      = $address->getCity();
         $addressParams['state']     = $address->getRegionCode();
         $addressParams['zip']       = $address->getPostcode();
@@ -265,22 +241,22 @@ class RequestHandler
         return $this->currency->formatTxt( $amount, ['display' => \Magento\Framework\Currency::NO_SYMBOL] );
     }
 
-    protected function scrubEmptyValues($params)
+    protected function scrubEmptyValues($array)
     {
         // Removes any empty values (except for 'empty' numerical values such as 0 or 00.00)
-        foreach ($params as $key => $value) {
+        foreach ($array as $key => $value) {
 
             if (is_array($value)) {
                 $value = $this->scrubEmptyValues($value);
-                $params[$key] = $value;
+                $array[$key] = $value;
             }
 
             if ( empty($value) && !is_numeric($value) ) {
-                unset($params[$key]);
+                unset($array[$key]);
             }
 
         }
 
-        return $params;
+        return $array;
     }
 }

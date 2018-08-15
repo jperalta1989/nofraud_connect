@@ -10,37 +10,32 @@ class ResponseHandler
         $this->logger = $logger;
     }
 
-    public function buildComment( $response )
-    {
-        if ( isset($response['body']['decision']) ){
-            return $this->commentFromDecision( $response['body'] );
-        }
+    // todo: Verify new comment code covers all bases.
 
-        if ( isset($response['body']['Errors']) ){
-            $comment = "NoFraud was unable to assess this transaction due to an error.";
+    public function buildComment( $resultMap )
+    {
+        if ( isset($resultMap['http']['client']['error']) ){
+            $comment = "Failed to connect with the NoFraud service due to an error.";
             return $comment;
         }
 
-        switch ( $response['http_code'] ){
+        if ( isset($resultMap['http']['response']['body']) ){
 
-            case 200:
-                $comment  = "The payment processor provided too little information for NoFraud to assess this transaction.";
-                $comment .= "<br>Not to worry: this is the expected behavior for some payment processors.";
-                return $comment;
+            $responseBody = $resultMap['http']['response']['body'];
 
-            case 403:
-                $comment = "Failed to authenticate with NoFraud. Please ensure that you have correctly entered your API Token under 'Stores > Configuration > NoFraud > Connect'." ;
-                return $comment;
-
-            default:
-                $comment = "We're sorry. It appears the NoFraud service was unavailable at the time of this transaction.";
-                return $comment;
-
+            if ( isset($responseBody['Errors']) ){
+                return $this->commentFromNoFraudErrors( $responseBody['Errors'] );
+            } else {
+                return $this->commentFromNoFraudDecision( $responseBody );
+            }
         }
 
+        if ( isset($resultMap['http']['response']['code']) ){
+            return $this->commentFromResponseCode( $resultMap['http']['response']['code'] );
+        }
     }
 
-    protected function commentFromDecision( $responseBody )
+    protected function commentFromNoFraudDecision( $responseBody )
     {
         $id       = $responseBody['id'];
         $decision = $responseBody['decision'];
@@ -54,9 +49,36 @@ class ResponseHandler
         return $comment;
     }
 
+    protected function commentFromNoFraudErrors( $errors )
+    {
+        $error_s = count($errors) > 1 ? 'errors' : 'error' ;
+
+        $comment = "NoFraud was unable to assess this transaction due to the following {$error_s}:";
+        foreach ( $errors as $error ){
+            $comment .= "<br>\"{$error}\"" ;
+        }
+
+        return $comment;
+    }
+
     protected function noFraudLink( $transactionId, $linkText )
     {
         return "<a target=\"_blank\" href=\"https://portal.nofraud.com/transaction/{$transactionId}\">{$linkText}</a>" ;
+    }
+
+    protected function commentFromResponseCode( $responseCode )
+    {
+        switch ( $responseCode ){
+            case 403:
+                $comment = "Failed to authenticate with NoFraud. Please ensure that you have correctly entered your API Token under 'Stores > Configuration > NoFraud > Connect'.";
+                break;
+
+            default:
+                $comment = "We're sorry. It appears the NoFraud service was unavailable at the time of this transaction.";
+                break;
+
+            return $comment;
+        }
     }
 
 }

@@ -40,11 +40,23 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         }
         */
 
+        // If the payment has not yet been processed
+        // by the payment processor, then do nothing.
+        //
+        // Some payment processors like Authorize.net may cause this Event to fire
+        // multiple times, but the logic below this point should not be executed
+        // unless the Payment has a `last_trans_id` attribute.
+        //
+        if ( !$payment->getLastTransId() ){
+            return;
+        }
 
 
         // get \Magento\Sales\Model\Order
         //
         $order = $payment->getOrder();
+
+
 
         // get NoFraud Api Token
         //
@@ -56,15 +68,6 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             $this->requestHandler::SANDBOX_URL          :
             $this->requestHandler::PRODUCTION_URL       ;
 
-        // If Order has already been assessed by NoFraud, then do nothing.
-        //
-        if ( $this->requestHandler->noFraudRecordAlreadyExists( $order, $apiToken, $apiUrl ) )
-        {
-            return;
-        }
-
-
-
         // Build the NoFraud API request JSON from the Payment and Order objects:
         //
         $request = $this->requestHandler->build(
@@ -75,34 +78,40 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
  
         // Send the request to the NoFraud API and get the response:
         //
-        $response = $this->requestHandler->send($request, $apiUrl);
+        $resultMap = $this->requestHandler->send($request, $apiUrl);
 
-        // DEBUG
-        $this->logger->info( print_r( [ 'request' => $request, 'response' => $response ], true ) );
 
-        // TODO: Log and report errors if applicable:
+
+        // Log request results with associated invoice number:
         //
-        // $this->responseHandler->handleErrors($response);
+        $this->logger->logTransactionResults($order, $payment, $resultMap);
 
 
 
-        // For "review" or "fail" responses from NoFraud, mark the order as "Fraud Detected":
-        //
-        if ( isset( $response['body']['decision'] ) ){
-            if ( $response['body']['decision'] != 'pass' ){
-                $order->setStatus( \Magento\Sales\Model\Order::STATUS_FRAUD );
+        try {
+
+            // For all responses from NoFraud, add an informative comment to the Order in Magento Admin:
+            // 
+            $comment = $this->responseHandler->buildComment($resultMap);
+            if ( !empty($comment) ){
+                $order->addStatusHistoryComment($comment);
             }
+
+            // For "review" or "fail" responses from NoFraud, mark the order as "Fraud Detected":
+            //
+            if ( isset( $resultMap['http']['response']['body']['decision'] ) ){
+                if ( $resultMap['http']['response']['body']['decision'] != 'pass' ){
+                    $order->setStatus( \Magento\Sales\Model\Order::STATUS_FRAUD );
+                }
+            }
+
+            // Finally, save the Order:
+            //
+            $order->save();
+
+        } catch ( \Exception $exception ) {
+            $this->logger->logFailure($order, $exception);
         }
 
-        // For all responses from NoFraud, add an informative comment to the Order in Magento Admin:
-        // 
-        $comment = $this->responseHandler->buildComment($response);
-        $order->addStatusHistoryComment($comment);
-
-
-
-        // Finally, save the Order:
-        //
-        $order->save();
     }
 }

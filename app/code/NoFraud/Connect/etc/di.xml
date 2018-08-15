@@ -9,7 +9,7 @@
     </type>
     <type name="NoFraud\Connect\Logger\Logger">
         <arguments>
-            <argument name="name" xsi:type="string">NoFraud_Connect_Logger</argument>
+            <argument name="name" xsi:type="string">NoFraud_Connect</argument>
             <argument name="handlers"  xsi:type="array">
                 <item name="system" xsi:type="object">NoFraud\Connect\Logger\Handler\Info</item>
             </argument>
