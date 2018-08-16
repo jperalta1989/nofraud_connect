@@ -133,15 +133,27 @@ class RequestHandler
         $cc['cardNumber']     = $payment->getData('cc_number');
         $cc['expirationDate'] = $this->buildCcExpDate($payment);
         $cc['cardCode']       = $payment->getData('cc_cid'); 
-        if ( strlen($payment->getCcLast4()) == 4 ){
-            $cc['last4']      = $payment->getCcLast4();
-        }
+
+        $cc['last4']          = $this->decryptLast4($payment);
 
         $paymentParams = [];
 
         $paymentParams['creditCard'] = $cc;
 
         return $paymentParams;
+    }
+
+    protected function decryptLast4( $payment )
+    {
+        $last4 = $payment->getCcLast4();
+
+        if ( !empty($last4) && strlen($last4) != 4 ){
+            $last4 = $payment->decrypt($last4);
+        }
+
+        if ( strlen($last4) == 4 ){
+            return $last4;
+        }
     }
 
     protected function formatCcType( $code )
