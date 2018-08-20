@@ -30,6 +30,34 @@
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
             </group>
+            <group id="order_statuses" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Order Statuses</label>
+                <comment>The following statuses will be applied to orders based on the results from NoFraud.</comment>
+                <field id="pass" translate="label" type="select" 
+                    sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Pass</label>
+                    <comment></comment>
+                    <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
+                </field>
+                <field id="review" translate="label" type="select" 
+                    sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Review (Pass or Fail to be determined)</label>
+                    <comment></comment>
+                    <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
+                </field>
+                <field id="fail" translate="label" type="select" 
+                    sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Fail (Fraud Detected)</label>
+                    <comment></comment>
+                    <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
+                </field>
+                <field id="error" translate="label" type="select" 
+                    sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Error</label>
+                    <comment>By default, when the NoFraud service encounters an error during checkout, the order's status will not be modified. If you would like to apply a status change, however, you may choose one here.</comment>
+                    <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
+                </field>
+            </group>
         </section>
     </system>
 </config>

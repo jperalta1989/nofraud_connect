@@ -90,18 +90,22 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
 
         try {
 
-            // For all responses from NoFraud, add an informative comment to the Order in Magento Admin:
+            // For all API responses (official results from NoFraud, client errors, etc.),
+            // add an informative comment to the Order in Magento Admin:
             // 
             $comment = $this->responseHandler->buildComment($resultMap);
             if ( !empty($comment) ){
                 $order->addStatusHistoryComment($comment);
             }
 
-            // For "review" or "fail" responses from NoFraud, mark the order as "Fraud Detected":
+            // For official results from from NoFraud, update the order status 
+            // according to Admin Config preferences:
             //
-            if ( isset( $resultMap['http']['response']['body']['decision'] ) ){
-                if ( $resultMap['http']['response']['body']['decision'] != 'pass' ){
-                    $order->setStatus( \Magento\Sales\Model\Order::STATUS_FRAUD );
+            if ( isset( $resultMap['http']['response']['body'] ) ){
+                $newStatus = $this->orderStatusFromConfig( $resultMap['http']['response']['body'] );
+                if ( !empty($newStatus) ){
+                    $this->logger->info("Attempting to set Order status {$newStatus}...");
+                    $order->setStatus( $newStatus );
                 }
             }
 
@@ -114,4 +118,27 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         }
 
     }
+
+    protected function orderStatusFromConfig( $responseBody )
+    {
+        if ( isset($responseBody['decision']) ){
+            $key = $responseBody['decision'];
+        }
+
+        if ( isset($responseBody['Errors']) ){
+            $key = 'error';
+        }
+        
+
+        if ( isset($key) ){
+            $this->logger->info("key set to {$key}"); //DEBUG
+
+            $statusCode = $this->configHelper->getCustomStatusConfig($key);
+
+            $this->logger->info("got code '{$statusCode}' from config based on key '{$key}'"); //DEBUG
+
+            return $statusCode;
+        }
+    }
+
 }
