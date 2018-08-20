@@ -158,15 +158,17 @@ class RequestHandler
 
     protected function formatCcType( $code )
     {
-        if ( empty($code) ){
+        if ( empty($code) || !is_a($code, 'String') ){
             return;
         }
 
-        if ( !isset($this->CcTypeMap[strtolower($code)]) ){
+        $codeKey = strtolower($code);
+
+        if ( !isset($this->CcTypeMap[$codeKey]) ){
             return $code;
         }
 
-        return $this->CcTypeMap[$code];
+        return $this->CcTypeMap[$codeKey];
     }
 
     protected function buildCcExpDate( $payment )
