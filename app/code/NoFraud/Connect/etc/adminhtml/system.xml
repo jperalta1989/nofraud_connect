@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
 
-    <!-- TODO: Place NoFraud configuration under Stores > Sales > Fraud Prevention (along with Signifyd)?-->
-
     <system>
         <tab id="nofraud" translate="label" sortOrder="512">
             <label>NoFraud</label>
@@ -32,7 +30,7 @@
             </group>
             <group id="order_statuses" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Order Statuses</label>
-                <comment>The following statuses will be applied to orders based on the results from NoFraud.</comment>
+                <comment>The following statuses will be applied to orders after checkout, according to the decision returned from NoFraud ("pass", "review", or "fail"). If no custom status is selected, NoFraud will still provide a transaction report but the order's status will not be changed.</comment>
                 <field id="pass" translate="label" type="select" 
                     sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Pass</label>
@@ -41,7 +39,7 @@
                 </field>
                 <field id="review" translate="label" type="select" 
                     sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Review (Pass or Fail to be determined)</label>
+                    <label>Review ("Pass" or "Fail" to be determined)</label>
                     <comment></comment>
                     <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
                 </field>
@@ -54,7 +52,7 @@
                 <field id="error" translate="label" type="select" 
                     sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Error</label>
-                    <comment>By default, when the NoFraud service encounters an error during checkout, the order's status will not be modified. If you would like to apply a status change, however, you may choose one here.</comment>
+                    <comment>This status will be applied if NoFraud responds with an error message instead of a pass/review/fail decision.</comment>
                     <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
                 </field>
             </group>
