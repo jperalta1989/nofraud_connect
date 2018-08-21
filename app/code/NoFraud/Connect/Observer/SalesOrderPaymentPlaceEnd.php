@@ -45,8 +45,9 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         // get \Magento\Sales\Model\Order
         //
         $order = $payment->getOrder();
-
-        $this->logger->info("Checking whether order status is ignored...");
+        
+        // If Orders with the current Order's Status are ignored, then do nothing.
+        //
         if ( $this->configHelper->orderStatusIsIgnored($order) ){
             return;
         }
@@ -110,7 +111,6 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             if ( isset( $resultMap['http']['response']['body'] ) ){
                 $newStatus = $this->orderStatusFromConfig( $resultMap['http']['response']['body'] );
                 if ( !empty($newStatus) ){
-                    $this->logger->info("Attempting to set Order status {$newStatus}...");
                     $order->setStatus( $newStatus );
                 }
             }
@@ -134,15 +134,9 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         if ( isset($responseBody['Errors']) ){
             $key = 'error';
         }
-        
 
         if ( isset($key) ){
-            $this->logger->info("key set to {$key}"); //DEBUG
-
             $statusCode = $this->configHelper->getCustomStatusConfig($key);
-
-            $this->logger->info("got code '{$statusCode}' from config based on key '{$key}'"); //DEBUG
-
             return $statusCode;
         }
     }

@@ -40,14 +40,12 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     public function orderStatusIsIgnored( $order )
     {
         $screenedOrderStatus = $this->getScreenedOrderStatus();
-        $this->logger->info("Set to screen only '{$screenedOrderStatus}' orders..."); //DEBUG
 
         if ( empty($screenedOrderStatus) ){
             return false;
         }
 
         $orderStatus = $order->getStatus();
-        $this->logger->info("Order current status is '{$orderStatus}'..."); //DEBUG
        
         return $orderStatus != $screenedOrderStatus;
     }
@@ -74,15 +72,11 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
 
     public function getCustomStatusConfig( $key )
     {
-        $this->logger->info("hit configHelper->getCustomStatusConfig( {$key} )"); //DEBUG
-        $this->logger->info( print_r($this->orderStatusesKeys,true) ); //DEBUG
         if ( !in_array($key, $this->orderStatusesKeys) ){
             return;
         }
 
         $path = self::ORDER_STATUSES . '/' . $key; 
-
-        $this->logger->info("fetching value from {$path}..."); //DEBUG
 
         return $this->scopeConfig->getValue( $path );
     }
