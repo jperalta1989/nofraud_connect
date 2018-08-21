@@ -8,6 +8,7 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     const GENERAL_ENABLED = self::GENERAL . '/enabled';
     const GENERAL_API_TOKEN = self::GENERAL . '/api_token';
     const GENERAL_SANDBOX_MODE = self::GENERAL . '/sandbox_enabled';
+    const GENERAL_SCREENED_ORDER_STATUS = self::GENERAL . '/screened_order_status';
 
     const ORDER_STATUSES = 'nofraud_connect/order_statuses';
     protected $orderStatusesKeys = [
@@ -36,6 +37,21 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         return $this->getSandboxMode();
     }
 
+    public function orderStatusIsIgnored( $order )
+    {
+        $screenedOrderStatus = $this->getScreenedOrderStatus();
+        $this->logger->info("Set to screen only '{$screenedOrderStatus}' orders..."); //DEBUG
+
+        if ( empty($screenedOrderStatus) ){
+            return false;
+        }
+
+        $orderStatus = $order->getStatus();
+        $this->logger->info("Order current status is '{$orderStatus}'..."); //DEBUG
+       
+        return $orderStatus != $screenedOrderStatus;
+    }
+
     public function getApiToken()
     {
         return $this->scopeConfig->getValue(self::GENERAL_API_TOKEN);
@@ -49,6 +65,11 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     public function getEnabled()
     {
         return $this->scopeConfig->getValue(self::GENERAL_ENABLED);
+    }
+
+    public function getScreenedOrderStatus()
+    {
+        return $this->scopeConfig->getValue(self::GENERAL_SCREENED_ORDER_STATUS);
     }
 
     public function getCustomStatusConfig( $key )

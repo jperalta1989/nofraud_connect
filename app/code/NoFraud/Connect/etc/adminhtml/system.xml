@@ -27,6 +27,12 @@
                     <comment>While enabled, API requests are sent to apitest.nofraud.com.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
+                <field id="screened_order_status" translate="label" type="select" 
+                    sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Screened Order Status</label>
+                    <comment>If selected, only orders with this status will be screened by NoFraud.</comment>
+                    <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
+                </field>
             </group>
             <group id="order_statuses" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Order Statuses</label>

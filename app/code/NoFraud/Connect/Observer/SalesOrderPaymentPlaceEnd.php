@@ -40,6 +40,17 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         }
         */
 
+
+
+        // get \Magento\Sales\Model\Order
+        //
+        $order = $payment->getOrder();
+
+        $this->logger->info("Checking whether order status is ignored...");
+        if ( $this->configHelper->orderStatusIsIgnored($order) ){
+            return;
+        }
+
         // If the payment has not yet been processed
         // by the payment processor, then do nothing.
         //
@@ -50,11 +61,6 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         if ( !$payment->getLastTransId() ){
             return;
         }
-
-
-        // get \Magento\Sales\Model\Order
-        //
-        $order = $payment->getOrder();
 
 
 
