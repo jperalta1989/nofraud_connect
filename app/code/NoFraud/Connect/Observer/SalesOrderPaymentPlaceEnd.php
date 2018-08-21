@@ -91,7 +91,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
 
         // Log request results with associated invoice number:
         //
-        $this->logger->logTransactionResults($order, $payment, $resultMap);
+        $this->logger->logTransactionResults($order, $payment, $resultMap); //LOGGING
 
 
 
@@ -120,7 +120,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             $order->save();
 
         } catch ( \Exception $exception ) {
-            $this->logger->logFailure($order, $exception);
+            $this->logger->logFailure($order, $exception); //LOGGING
         }
 
     }
