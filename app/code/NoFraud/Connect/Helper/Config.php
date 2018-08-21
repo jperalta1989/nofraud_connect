@@ -47,7 +47,13 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
 
         $orderStatus = $order->getStatus();
        
-        return $orderStatus != $screenedOrderStatus;
+        if ( $orderStatus != $screenedOrderStatus ){
+            $orderId = $order->getIncrementId(); //LOGGING
+            $this->logger->info("Ignoring Order {$orderId}: status is '{$orderStatus}'; only screening orders with status '{$screenedOrderStatus}'."); //LOGGING
+            return true;
+        }
+
+        return false;
     }
 
     public function getApiToken()
