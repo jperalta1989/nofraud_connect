@@ -271,7 +271,7 @@ class RequestHandler
 
         switch ( $method ) {
 
-            case 'payflowpro':
+            case \Magento\Paypal\Model\Config::METHOD_PAYFLOWPRO:
                 $params = [
                     "payment" => [
                         "creditCard" => [
@@ -286,7 +286,7 @@ class RequestHandler
                 ];
                 break;
 
-            case 'braintree':
+            case \Magento\Braintree\Model\Ui\ConfigProvider::CODE:
                 $params = [
                     "payment" => [
                         "creditCard" => [
