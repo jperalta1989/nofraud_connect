@@ -10,8 +10,6 @@ class ResponseHandler
         $this->logger = $logger;
     }
 
-    // todo: Verify new comment code covers all bases.
-
     public function buildComment( $resultMap )
     {
         if ( isset($resultMap['http']['client']['error']) ){

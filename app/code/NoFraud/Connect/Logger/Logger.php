@@ -20,7 +20,6 @@ class Logger extends \Monolog\Logger
 
     public function logFailure( $order, $exception )
     {
-        // todo: Place info logs and stack traces in separate files? Will require multiple Logger classes.
         $orderId = $order->getIncrementID();
         $this->critical( "Encountered an exception while processing Order {$orderId}: \n" . (string) $exception );
     }
