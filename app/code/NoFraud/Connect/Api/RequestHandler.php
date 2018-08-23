@@ -10,11 +10,12 @@ class RequestHandler
     const DEFAULT_AVS_CODE = 'U';
     const DEFAULT_CVV_CODE = 'U';
 
-    protected $CcTypeMap = [
-        'ae' => "Amex",
-        'di' => "Discover",
-        'mc' => "Mastercard",
-        'vs' => "Visa",
+    protected $ccTypeMap = [
+        'ae' => 'Amex',
+        'di' => 'Discover',
+        'mc' => 'Mastercard',
+        'vs' => 'Visa',
+        'vi' => 'Visa',
     ];
 
     public function __construct(
@@ -39,6 +40,9 @@ class RequestHandler
         $params['billTo']   = $this->buildAddressParams( $order->getBillingAddress(), true );
         $params['shipTo']   = $this->buildAddressParams( $order->getShippingAddress() );
         $params['lineItems'] = $this->buildLineItemsParams( $order->getItems() );
+
+        $paramsAdditionalInfo = $this->buildParamsAdditionalInfo( $payment );
+        $params = array_replace_recursive( $params, $paramsAdditionalInfo );
 
         return $this->scrubEmptyValues($params);
     }
@@ -130,9 +134,9 @@ class RequestHandler
         $cc = [];
 
         $cc['cardType']       = $this->formatCcType( $payment->getCcType() );
-        $cc['cardNumber']     = $payment->getData('cc_number');
+        $cc['cardNumber']     = $payment->getCcNumber();
         $cc['expirationDate'] = $this->buildCcExpDate($payment);
-        $cc['cardCode']       = $payment->getData('cc_cid'); 
+        $cc['cardCode']       = $payment->getCcCid(); 
 
         $cc['last4']          = $this->decryptLast4($payment);
 
@@ -158,17 +162,17 @@ class RequestHandler
 
     protected function formatCcType( $code )
     {
-        if ( empty($code) || !is_a($code, 'String') ){
+        if ( empty($code) ){
             return;
         }
 
         $codeKey = strtolower($code);
 
-        if ( !isset($this->CcTypeMap[$codeKey]) ){
+        if ( !isset($this->ccTypeMap[$codeKey]) ){
             return $code;
         }
 
-        return $this->CcTypeMap[$codeKey];
+        return $this->ccTypeMap[$codeKey];
     }
 
     protected function buildCcExpDate( $payment )
@@ -254,6 +258,58 @@ class RequestHandler
 
         return $this->currency->formatTxt( $amount, ['display' => \Magento\Framework\Currency::NO_SYMBOL] );
     }
+
+    protected function buildParamsAdditionalInfo( $payment )
+    {
+        $info = $payment->getAdditionalInformation();
+
+        if ( empty($info) ){
+            return [];
+        }
+
+        $method = $payment->getMethod();
+
+        switch ( $method ) {
+
+            case 'payflowpro':
+                $params = [
+                    "payment" => [
+                        "creditCard" => [
+                            "last4" => $info['cc_details']['cc_last_4'] ?? NULL,
+                        ],
+                    ],
+                    "avsResultCode" => $info['avsaddr'] ?? NULL . 
+                                       $info['avszip']  ?? NULL . 
+                                       $info['iavs']    ?? NULL,
+
+                    "cvvResultCode" => $info['cvv2match'] ?? NULL,
+                ];
+                break;
+
+            case 'braintree':
+                $params = [
+                    "payment" => [
+                        "creditCard" => [
+                            "last4" => substr( $info['cc_number'] ?? [], -4 ),
+                            "cardType" => $info['cc_type'] ?? NULL,
+                        ],
+                    ],
+                    "avsResultCode" => $info['avsStreetAddressResponseCode'] ?? NULL .
+                                       $info['avsPostalCodeResponseCode']    ?? NULL,
+
+                    "cvvResultCode" => $info['cvvResponseCode'] ?? NULL,
+                ];
+                break;
+
+            default:
+                $params = [];
+                break;
+
+        }
+
+        return $this->scrubEmptyValues($params);
+    }
+
 
     protected function scrubEmptyValues($array)
     {
