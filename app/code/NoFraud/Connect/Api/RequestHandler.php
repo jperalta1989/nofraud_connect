@@ -272,33 +272,44 @@ class RequestHandler
         switch ( $method ) {
 
             case \Magento\Paypal\Model\Config::METHOD_PAYFLOWPRO:
+
+                $last4 = $info['cc_details']['cc_last_4'] ?? NULL;
+                $sAvs  = $info['avsaddr']   ?? NULL; // AVS Street Address Match
+                $zAvs  = $info['avszip']    ?? NULL; // AVS Zip Code Match
+                $iAvs  = $info['iavs']      ?? NULL; // International AVS Response
+                $cvv   = $info['cvv2match'] ?? NULL;
+
                 $params = [
                     "payment" => [
                         "creditCard" => [
-                            "last4" => $info['cc_details']['cc_last_4'] ?? NULL,
+                            "last4" => $last4,
                         ],
                     ],
-                    "avsResultCode" => $info['avsaddr'] ?? NULL . 
-                                       $info['avszip']  ?? NULL . 
-                                       $info['iavs']    ?? NULL,
-
-                    "cvvResultCode" => $info['cvv2match'] ?? NULL,
+                    "avsResultCode" => $sAvs . $zAvs . $iAvs,
+                    "cvvResultCode" => $cvv,
                 ];
+
                 break;
 
             case \Magento\Braintree\Model\Ui\ConfigProvider::CODE:
+
+                $last4    = substr( $info['cc_number'] ?? [], -4 );
+                $cardType = $info['cc_type'] ?? NULL;
+                $sAvs     = $info['avsStreetAddressResponseCode'] ?? NULL; // AVS Street Address Match
+                $zAvs     = $info['avsPostalCodeResponseCode']    ?? NULL; // AVS Zip Code Match
+                $cvv      = $info['cvvResponseCode'] ?? NULL;
+
                 $params = [
                     "payment" => [
                         "creditCard" => [
-                            "last4" => substr( $info['cc_number'] ?? [], -4 ),
-                            "cardType" => $info['cc_type'] ?? NULL,
+                            "last4"    => $last4,
+                            "cardType" => $cardType,
                         ],
                     ],
-                    "avsResultCode" => $info['avsStreetAddressResponseCode'] ?? NULL .
-                                       $info['avsPostalCodeResponseCode']    ?? NULL,
-
-                    "cvvResultCode" => $info['cvvResponseCode'] ?? NULL,
+                    "avsResultCode" => $sAvs . $zAvs,
+                    "cvvResultCode" => $cvv,
                 ];
+
                 break;
 
             default:
