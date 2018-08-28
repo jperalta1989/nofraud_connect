@@ -33,13 +33,13 @@ class RequestHandler
      */
     public function build( $payment, $order, $apiToken )
     {
-        $params             = $this->buildBaseParams( $payment, $order, $apiToken );
-        $params['customer'] = $this->buildCustomerParams( $order );
-        $params['order']    = $this->buildOrderParams( $order );
-        $params['payment']  = $this->buildPaymentParams( $payment );
-        $params['billTo']   = $this->buildAddressParams( $order->getBillingAddress(), true );
-        $params['shipTo']   = $this->buildAddressParams( $order->getShippingAddress() );
-        $params['lineItems'] = $this->buildLineItemsParams( $order->getItems() );
+        $params               = $this->buildBaseParams( $payment, $order, $apiToken );
+        $params['customer']   = $this->buildCustomerParams( $order );
+        $params['order']      = $this->buildOrderParams( $order );
+        $params['payment']    = $this->buildPaymentParams( $payment );
+        $params['billTo']     = $this->buildAddressParams( $order->getBillingAddress(), true );
+        $params['shipTo']     = $this->buildAddressParams( $order->getShippingAddress() );
+        $params['lineItems']  = $this->buildLineItemsParams( $order->getItems() );
         $params['userFields'] = $this->buildUserFieldsParams( $payment );
 
         $paramsAdditionalInfo = $this->buildParamsAdditionalInfo( $payment );
@@ -134,11 +134,11 @@ class RequestHandler
     {
         $cc = [];
 
-        $cc['cardType']       = $this->formatCcType( $payment->getCcType() );
         $cc['cardNumber']     = $payment->getCcNumber();
-        $cc['expirationDate'] = $this->buildCcExpDate($payment);
         $cc['cardCode']       = $payment->getCcCid(); 
 
+        $cc['cardType']       = $this->formatCcType( $payment->getCcType() );
+        $cc['expirationDate'] = $this->buildCcExpDate($payment);
         $cc['last4']          = $this->decryptLast4($payment);
 
         $paymentParams = [];
@@ -216,11 +216,12 @@ class RequestHandler
         $addressParams['firstName'] = $address->getFirstname();
         $addressParams['lastName']  = $address->getLastname();
         $addressParams['company']   = $address->getCompany();
-        $addressParams['address']   = implode( ' ', $address->getStreet() );
         $addressParams['city']      = $address->getCity();
         $addressParams['state']     = $address->getRegionCode();
         $addressParams['zip']       = $address->getPostcode();
         $addressParams['country']   = $address->getCountryId();
+
+        $addressParams['address']   = implode( ' ', $address->getStreet() );
 
         if ( $includePhoneNumber ){
             $addressParams['phoneNumber'] = $address->getTelephone();
@@ -242,8 +243,9 @@ class RequestHandler
 
             $lineItem['sku']      = $item->getSku();
             $lineItem['name']     = $item->getName();
-            $lineItem['price']    = $this->formatTotal( $item->getPrice() );
             $lineItem['quantity'] = $item->getQtyOrdered();
+
+            $lineItem['price']    = $this->formatTotal( $item->getPrice() );
 
             $lineItemsParams[] = $lineItem;
         }
