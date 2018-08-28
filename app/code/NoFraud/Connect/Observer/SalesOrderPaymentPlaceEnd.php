@@ -31,14 +31,11 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         //
         $payment = $observer->getEvent()->getPayment();
 
-        // PHASE2: This line should be implemented in a later version:
-        // If the Payment method is blacklisted in the Admin Config, then do nothing.
+        // If the Payment method is not selected for screening in the Admin Config, then do nothing.
         //
-        /*
-        if ( $this->configHelper->paymentMethodIsIgnored($payment->getMethod()) ) {
+        if ( $this->configHelper->paymentMethodIsIgnored($payment) ) {
             return;
         }
-        */
 
 
 

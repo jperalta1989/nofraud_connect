@@ -59,13 +59,28 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
 
     public function paymentMethodIsIgnored( $payment )
     {
+        $paymentMethod = $payment->getMethod();
         $screenedPaymentMethods = $this->getScreenedPaymentMethods();
-        return !in_array( $payment->getMethod(), $screenedPaymentMethods );
+
+        if ( !in_array( $paymentMethod, $screenedPaymentMethods ) ){
+            $orderId = $payment->getOrder()->getIncrementId(); //LOGGING
+            $this->logger->info(
+                "Ignoring Order {$orderId}: payment method is '{$paymentMethod}'; " .
+                "only screening orders with the following payment methods: " .
+                implode(', ', $screenedPaymentMethods)
+            ); //LOGGING
+            return true;
+        }
+
+        return false;
     }
 
     public function getScreenedPaymentMethods()
     {
-        return $this->scopeConfig->getValue(self::GENERAL_SCREENED_PAYMENT_METHODS);
+        $commaSeparatedMethodCodes = $this->scopeConfig->getValue(self::GENERAL_SCREENED_PAYMENT_METHODS);
+        $arrayOfMethodCodes = explode(',', $commaSeparatedMethodCodes);
+
+        return $arrayOfMethodCodes;
     }
 
     public function getApiToken()
