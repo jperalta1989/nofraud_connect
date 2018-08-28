@@ -9,6 +9,7 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     const GENERAL_API_TOKEN = self::GENERAL . '/api_token';
     const GENERAL_SANDBOX_MODE = self::GENERAL . '/sandbox_enabled';
     const GENERAL_SCREENED_ORDER_STATUS = self::GENERAL . '/screened_order_status';
+    const GENERAL_SCREENED_PAYMENT_METHODS = self::GENERAL . '/screened_payment_methods';
 
     const ORDER_STATUSES = 'nofraud_connect/order_statuses';
     protected $orderStatusesKeys = [
@@ -54,6 +55,17 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         }
 
         return false;
+    }
+
+    public function paymentMethodIsIgnored( $payment )
+    {
+        $screenedPaymentMethods = $this->getScreenedPaymentMethods();
+        return !in_array( $payment->getMethod(), $screenedPaymentMethods );
+    }
+
+    public function getScreenedPaymentMethods()
+    {
+        return $this->scopeConfig->getValue(self::GENERAL_SCREENED_PAYMENT_METHODS);
     }
 
     public function getApiToken()
