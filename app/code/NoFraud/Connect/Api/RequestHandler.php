@@ -40,6 +40,7 @@ class RequestHandler
         $params['billTo']   = $this->buildAddressParams( $order->getBillingAddress(), true );
         $params['shipTo']   = $this->buildAddressParams( $order->getShippingAddress() );
         $params['lineItems'] = $this->buildLineItemsParams( $order->getItems() );
+        $params['userFields'] = $this->buildUserFieldsParams( $payment );
 
         $paramsAdditionalInfo = $this->buildParamsAdditionalInfo( $payment );
         $params = array_replace_recursive( $params, $paramsAdditionalInfo );
@@ -248,6 +249,15 @@ class RequestHandler
         }
 
         return $lineItemsParams;
+    }
+
+    protected function buildUserFieldsParams( $payment )
+    {
+        $userFieldsParams = [];
+
+        $userFieldsParams['magento2_payment_method'] = $payment->getMethod();
+        
+        return $userFieldsParams;
     }
 
     protected function formatTotal( $amount )
