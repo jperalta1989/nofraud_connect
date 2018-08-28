@@ -116,8 +116,12 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             //
             $order->save();
 
-        } catch ( \Exception $exception ) {
-            $this->logger->logFailure($order, $exception); //LOGGING
+        } catch ( \Exception $e1 ) {
+            try{
+                $this->logger->logFailure($order, $exception); //LOGGING
+            } catch ( \Exception $e2 ) {
+                $this->logger->info( (string) $e1 ); //LOGGING
+            }
         }
 
     }
