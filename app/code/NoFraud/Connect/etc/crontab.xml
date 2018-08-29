@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
     <group id="default">
-        <job name="nofraud_update_orders_under_review" instance="Magento\Captcha\Cron\UpdateOrdersUnderReview" method="execute">
+        <job name="nofraud_update_orders_under_review" instance="NoFraud\Connect\Cron\UpdateOrdersUnderReview" method="execute">
             <schedule>0 * * * *</schedule>
         </job>
         <!--
-        <job name="nofraud_attempt_auto_refund" instance="Magento\Captcha\Cron\AttemptAutoRefund" method="execute">
+        <job name="nofraud_attempt_auto_refund" instance="NoFraud\Connect\Cron\AttemptAutoRefund" method="execute">
             <schedule>0 */6 * * *</schedule>
         </job>
         -->
