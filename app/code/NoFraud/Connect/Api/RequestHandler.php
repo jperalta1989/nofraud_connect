@@ -52,24 +52,38 @@ class RequestHandler
      * @param array  $params | NoFraud request object parameters
      * @param string $apiUrl | The URL to send to
      */
-    public function send( $params, $apiUrl )
+    public function send( $params, $apiUrl, $statusRequest = false )
     {
         $ch = curl_init();
 
-        $body = json_encode($params);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($body)));
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        if ( $statusRequest ){
+            $queryParams = 'status/' . $params['api_token'] . '/' . $params['order_id'] ;
+            $apiUrl .= $queryParams;
+        } else {        
+            $body = json_encode($params);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($body)));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        }
         curl_setopt($ch, CURLOPT_URL, $apiUrl );
         curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
         $result = curl_exec($ch);
 
-        $response = [
+        $resultMap = $this->buildResultMap( $result, $ch );
+
+        curl_close($ch);
+
+        return $this->scrubEmptyValues($resultMap);
+    }
+
+    protected function buildResultMap( $curlResult, $ch )
+    {
+        $resultMap = [
             'http' => [
                 'response' => [
-                    'body' => json_decode($result, true),
+                    'body' => json_decode($curlResult, true),
                     'code' => curl_getinfo($ch, CURLINFO_RESPONSE_CODE),
                     'time' => curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME),
                 ],
@@ -79,9 +93,17 @@ class RequestHandler
             ],
         ];
 
-        curl_close($ch);
+        return $resultMap;
+    }
 
-        return $this->scrubEmptyValues($response);
+    public function getTransactionStatus( $orderId, $apiToken, $apiUrl )
+    {
+        $params = [
+            'api_token' => $apiToken,
+            'order_id' => $orderId,
+        ];
+
+        return $this->send( $params, $apiUrl, '$statusRequest = true' );
     }
 
     protected function buildBaseParams( $payment, $order, $apiToken )

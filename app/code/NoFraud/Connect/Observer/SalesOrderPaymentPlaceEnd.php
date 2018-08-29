@@ -106,10 +106,14 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             // according to Admin Config preferences:
             //
             if ( isset( $resultMap['http']['response']['body'] ) ){
+
+                $this->addNoFraudDecisionToPayment( $payment, $resultMap );
+
                 $newStatus = $this->orderStatusFromConfig( $resultMap['http']['response']['body'] );
                 if ( !empty($newStatus) ){
                     $order->setStatus( $newStatus );
                 }
+
             }
 
             // Finally, save the Order:
@@ -124,6 +128,15 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             }
         }
 
+    }
+
+    protected function addNoFraudDecisionToPayment( $payment, $resultMap )
+    {
+        $decision = $resultMap['http']['response']['body']['decision'] ?? NULL ;
+
+        if ( $decision ){
+            $payment->setAdditionalInformation( 'nofraud_decision', $decision );
+        }
     }
 
     protected function orderStatusFromConfig( $responseBody )

@@ -33,6 +33,16 @@ class ResponseHandler
         }
     }
 
+    public function buildStatusUpdateComment( $resultMap )
+    {
+        $responseBody = $resultMap['http']['response']['body'];
+
+        $comment = "UPDATE: ";
+        $comment .= $this->commentFromNoFraudDecision( $responseBody );
+
+        return $comment;
+    }
+
     protected function commentFromNoFraudDecision( $responseBody )
     {
         $id       = $responseBody['id'];
