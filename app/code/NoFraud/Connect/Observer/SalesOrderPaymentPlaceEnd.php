@@ -107,7 +107,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             //
             if ( isset( $resultMap['http']['response']['body'] ) ){
 
-                $this->addNoFraudDecisionToPayment( $payment, $resultMap );
+                $this->addNoFraudResponseToPayment( $payment, $resultMap );
 
                 $newStatus = $this->orderStatusFromConfig( $resultMap['http']['response']['body'] );
                 if ( !empty($newStatus) ){
@@ -130,12 +130,19 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
 
     }
 
-    protected function addNoFraudDecisionToPayment( $payment, $resultMap )
+    protected function addNoFraudResponseToPayment( $payment, $resultMap )
     {
-        $decision = $resultMap['http']['response']['body']['decision'] ?? NULL ;
+        $nofraudDecision      = $resultMap['http']['response']['body']['decision'] ?? NULL ;
+        $nofraudTransactionId = $resultMap['http']['response']['body']['id']       ?? NULL ;
 
-        if ( $decision ){
-            $payment->setAdditionalInformation( 'nofraud_decision', $decision );
+        if ( $nofraudDecision ){
+
+            $nofraudResponse = [
+                'nofraud_decision'       => $nofraudDecision,
+                'nofraud_transaction_id' => $nofraudTransactionId,
+            ];
+
+            $payment->setAdditionalInformation( 'nofraud_response', $nofraudResponse );
         }
     }
 

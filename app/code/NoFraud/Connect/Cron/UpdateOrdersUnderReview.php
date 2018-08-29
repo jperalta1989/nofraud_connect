@@ -58,21 +58,22 @@ class UpdateOrdersUnderReview
 
             foreach ( $paymentsUnderReview as $payment ){
 
-                // Get associated Order and its ID
+                // Get NoFraud Transaction ID from Payment's `additional_information['nofraud_response']` key:
                 //
-                $order = $payment->getOrder();
-                $orderId = $order->getIncrementId();
+                $nofraudResponse = $payment->getAdditionalInformation('nofraud_response');
+
+                // Skip Payments with bad data (mostly for debugging; shouldn't be possible in production): // DEBUG
+                //
+                if ( empty($nofraudResponse) || empty($nofraudResponse['nofraud_transaction_id']) ){
+                    continue;
+                } else {
+                    $nofraudTransactionId = $nofraudResponse['nofraud_transaction_id'];
+                }
 
                 // Send a GET request to the NoFraud API
-                // (Get the current NoFraud decision associated with the Order ID):
+                // (Get the current NoFraud decision associated with the Transaction ID):
                 //
-                $this->logger->info( "{$orderId}: getting current decision from NoFraud..." ); // LOGGING
-                $resultMap = $this->requestHandler->getTransactionStatus( $orderId, $apiToken, $apiUrl );
-
-                $this->logger->logTransactionResults( $order, $payment, $resultMap ); // LOGGING
-
-                // Get the decision code from the API response:
-                //
+                $resultMap = $this->requestHandler->getTransactionStatus( $nofraudTransactionId, $apiToken, $apiUrl );
                 $decision = $resultMap['http']['response']['body']['decision'] ?? NULL ;
                 
                 // If NoFraud decision has been updated to 'pass' or 'fail', then
@@ -80,36 +81,55 @@ class UpdateOrdersUnderReview
                 //
                 // If not, log the reason why and move on.
                 //
-                if ( in_array( $decision, ['pass','fail'] ) ){
-                    $this->logger->info( "{$orderId}: got final decision: '{$decision}'" ); // LOGGING
+                if ( in_array( $decision, ['pass','fail','review'] ) ){
 
-                    $newStatus = $this->configHelper->getCustomStatusConfig($decision);
-                    if ( !empty($newStatus) ){
-                        $this->logger->info( "{$orderId}: updating Order Status to '{$newStatus}'..." ); // LOGGING
+                    // Get associated Order and its ID
+                    //
+                    $order = $payment->getOrder();
+                    $orderId = $order->getIncrementId();
 
-                        $order->setStatus($newStatus);
+                    switch ( $decision ){
+
+                        case 'review':
+                            $this->logger->info( "{$orderId}: no change: still under review" ); // LOGGING
+                            break;
+
+                        default:
+                            $this->logger->info( "{$orderId}: got final decision: '{$decision}'" ); // LOGGING
+
+                            // Update Order Status according to Admin Config
+                            //
+                            $newStatus = $this->configHelper->getCustomStatusConfig($decision);
+                            if ( !empty($newStatus) ){
+                                $this->logger->info( "{$orderId}: updating Order Status to '{$newStatus}'..." ); // LOGGING
+
+                                $order->setStatus($newStatus);
+                            }
+
+                            // Add a Status History Comment to the Order
+                            //
+                            $comment = $this->responseHandler->buildStatusUpdateComment( $resultMap );
+                            if ( !empty($comment) ){
+                                $this->logger->info( "{$orderId}: adding Status History Comment..." ); // LOGGING
+                                $order->addStatusHistoryComment($comment);
+                            }
+
+                            // Update Payment['additional_information']['nofraud_response']
+                            // 
+                            $this->logger->info( "{$orderId}: updating Payment's 'additional_information' column..." ); // LOGGING
+
+                            $nofraudResponse['nofraud_decision'] = $decision;
+                            $payment->setAdditionalInformation( 'nofraud_response', $nofraudResponse );
+
+                            $payment->save();
+                            $order->save();
+
+                            $this->logger->info( "{$orderId}: success" ); // LOGGING
+                            break;
                     }
-                    
-                    $comment = $this->responseHandler->buildStatusUpdateComment( $resultMap );
-                    if ( !empty($comment) ){
-                        $this->logger->info( "{$orderId}: adding Status History Comment..." ); // LOGGING
-                        $order->addStatusHistoryComment($comment);
-                    }
 
-                    $this->logger->info( "{$orderId}: updating Payment additional_information['nofraud_decision'] to '{$decision}'..." ); // LOGGING
-                    $payment->setAdditionalInformation( 'nofraud_decision', $decision );
-
-                    $payment->save();
-                    $order->save();
-
-                    $this->logger->info( "{$orderId}: success" ); // LOGGING
-
-                } elseif ( $decision == 'review' ){
-                    $this->logger->info( "{$orderId}: no change: still under review" ); // LOGGING
-
-                } elseif ( empty($decision) ){
-                    $this->logger->info( "{$orderId}: failed to get current decision from NoFraud..." ); // LOGGING
-
+                } else {
+                    $this->logger->info( "ERROR: cron: update_orders_under_review: " . json_encode($resultMap) ); // LOGGING
                 }
 
             }
@@ -117,8 +137,7 @@ class UpdateOrdersUnderReview
             $this->logger->info( "finishing cron: update_orders_under_review" ); // LOGGING
 
         } catch ( \Exception $message ) {
-            $this->logger->info( "cron failed: " . ((string) $message ) );
+            $this->logger->info( "ERROR: cron: update_orders_under_review: " . ((string) $message) );
         }
-
     }
 }

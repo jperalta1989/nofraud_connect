@@ -57,7 +57,7 @@ class RequestHandler
         $ch = curl_init();
 
         if ( $statusRequest ){
-            $queryParams = 'status/' . $params['api_token'] . '/' . $params['order_id'] ;
+            $queryParams = 'status/' . $params['api_token'] . '/' . $params['nofraud_transaction_id'] ;
             $apiUrl .= $queryParams;
         } else {        
             $body = json_encode($params);
@@ -96,11 +96,11 @@ class RequestHandler
         return $resultMap;
     }
 
-    public function getTransactionStatus( $orderId, $apiToken, $apiUrl )
+    public function getTransactionStatus( $nofraudTransactionId, $apiToken, $apiUrl )
     {
         $params = [
             'api_token' => $apiToken,
-            'order_id' => $orderId,
+            'nofraud_transaction_id' => $nofraudTransactionId,
         ];
 
         return $this->send( $params, $apiUrl, '$statusRequest = true' );
