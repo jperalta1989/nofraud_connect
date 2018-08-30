@@ -58,7 +58,7 @@ The observer listens for the `sales_order_payment_place_end` event, which dispat
 (`\Magento\Sales\Model\Order\Payment->place()`), and makes available the associated `Payment` object.
 
 > NOTE: Listening to this particular event is largely out of my initial deference to the original M1 module, 
-and in light of new information, listening to a later event may reduce complexity (see below). // LINK
+and in light of new information, listening for a later event may reduce complexity. ([ see below ](#markdown-header-potential-for-duplicate-api-calls))
 
 #### What Happens During Execution:
 
@@ -79,7 +79,7 @@ and in light of new information, listening to a later event may reduce complexit
     1. Stop execution.
 1. If the Payment does not have a transaction ID AND is not an offline payment method, then:
     1. Stop execution.
-        > This condition is essentially a compatibility measure for Authorize.net; see below for more detail. //LINK
+    > NOTE: This condition is essentially a compatibility measure for Authorize.net. ([ see below ](#markdown-header-potential-for-duplicate-api-calls))
 1. Get the `Order` from the `Payment`;
 1. If the Order should be ignored, then:
     1. Stop execution.
@@ -111,7 +111,7 @@ Builds the body (a JSON object) for a `POST` request to the NoFraud API.
 
 This function is only involved in creating new NoFraud transaction records during checkout (`\NoFraud\Connect\Observer\SalesOrderPaymentPlaceEnd`).
 
-The full object model this function can build resembles the following (not all values are always present, and keys with empty non-numeric values are removed).
+The full object model this function can build resembles the below example (not all values are always present, and keys with empty non-numeric values are removed).
 The full model accepted by the NoFraud API is [described here](https://portal.nofraud.com/pages/developer-documentation#1.4).
 
 ```
@@ -383,7 +383,7 @@ While it's not likely, it is possible that a payment processor could fire `...pa
 with the `Payment` object fully populated on the first occurence.
 This would render the conditional statement useless, resulting in duplicate API calls and duplicate records.
 
-Because of this, it may be worth the time to migrate the observer to listen for an event further down the checkout pipeline, 
+In light of this, it may be worth the time to have the observer listen for an event further down the checkout pipeline, 
 which is less likely to be affected by payment processors (for example, `sales_order_place_after` or `checkout_submit_all_after`).
 
 ## Matters of Opinion
