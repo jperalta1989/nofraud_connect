@@ -2,6 +2,12 @@
 
 Integrates NoFraud's post-payment-gateway API functionality into Magento 2.
 
+## Sections
+
+*
+*
+*
+
 ## Getting Started
 
 ### Installation
@@ -77,7 +83,7 @@ This class contains simple "getter" functions for each Admin Config setting, alo
 
 This class contains only three public functions:
 
-#### public function build( $payment, $order, $apiToken )
+#### RequestHandler public function build( $payment, $order, $apiToken )
 
 Builds the body (a JSON object) for a `POST` request to the NoFraud API.
 
@@ -151,13 +157,13 @@ The full model accepted by the NoFraud API is [described here](https://portal.no
 }
 ```
 
-#### public function send( $params, $apiUrl, $statusRequest = false )
+#### RequestHandler public function send( $params, $apiUrl, $statusRequest = false )
 
 Sends requests to the NoFraud API and returns a `$resultMap` (see Protected Functions).
 
 By default, this function handles `POST` requests prepared by `build(...)`. If `$statusRequest` is truthy, then a `GET` request is sent instead, and `$params` is assumed to contain only an existing NoFraud Transaction ID and the NoFraud API token.
 
-#### public function getTransactionStatus( $nofraudTransactionId, $apiToken, $apiUrl )
+#### RequestHandler public function getTransactionStatus( $nofraudTransactionId, $apiToken, $apiUrl )
 
 A readability wrapper for retrieving the current status of a NoFraud transaction record via `send(...)`.
 
@@ -169,7 +175,7 @@ The remaining functions in this class almost all pertain to getting or formattin
 
 The following two are worth mentioning:
 
-#### protected function buildResultMap( $curlResult, $ch )
+#### RequestHandler protected function buildResultMap( $curlResult, $ch )
 
 Takes a curl result and connection and returns an array resembling the model below (keys with empty non-numeric values are removed).
 
@@ -190,7 +196,7 @@ Used in several places in the module, and referred to as `$resultMap` throughout
 ]
 ```
 
-#### protected function buildParamsAdditionalInfo( $payment )
+#### RequestHandler protected function buildParamsAdditionalInfo( $payment )
 
 This function accounts for the arbitrary values some payment processors place in the `Payment`'s `additional_information` column.
 
@@ -205,11 +211,11 @@ This class is currently only responsible for building Status History Comments fo
 
 It has two public functions.
 
-#### public function buildComment( $resultMap )
+#### ResponseHandler public function buildComment( $resultMap )
 
 Responsible for building the initial Status History Comment applied to `Order`s at checkout. Has conditional logic to handle the different NoFraud response types, as well as API calls which resulted in HTTP client errors.
 
-#### public function buildStatusUpdateComment( $resultMap )
+#### ResponseHandler public function buildStatusUpdateComment( $resultMap )
 
 Responsible for building comments to be applied when a "review" transaction's status has been updated to "pass" or "fail". This function does not contain the special exhaustive variant messages from `buildComment(...)`, so as to avoid adding new Status History Comments unless a proper update has been retrieved from NoFraud.
 
@@ -228,11 +234,11 @@ etc/di.xml
 
 It also has two public functions:
 
-#### public function logTransactionResults( $order, $payment, $resultMap )
+#### Logger public function logTransactionResults( $order, $payment, $resultMap )
 
 For logging the results of `POST` requests sent to the NoFraud API.
 
-#### public function logFailure( $order, $exception )
+#### Logger public function logFailure( $order, $exception )
 
 For logging Exceptions thrown when failing to modify an `Order` model, along with the `Order`'s ID number.
 
@@ -244,10 +250,12 @@ For logging Exceptions thrown when failing to modify an `Order` model, along wit
 
 ## Admin Panel Special Configuration
 
-### Model/Config/Source/EnabledPaymentMethods.php
+### Model\Config\Source\EnabledPaymentMethods
 -------------------------------------------------
 
-This class only defines a `toOptionArray()` function. It serves to provide a list of enabled payment methods for the "Screened Payment Methods" multiselect option in the Admin Config.
+This class only defines a single public function, and serves as the Source Model for the "Screened Payment Methods" Config field.
+
+#### EnabledPaymentMethods public function toOptionArray()
 
 The way this array is constructed is less important than the format of the output.
 
@@ -329,7 +337,7 @@ Contains a node related to obscuring the API Token field in the Config panel.
 </config>
 ```
 
-#### Global vs Frontend Event Scope
+## Global vs Frontend Event Scope
 
 #### 
 
@@ -337,7 +345,7 @@ Contains a node related to obscuring the API Token field in the Config panel.
 
 ### Which Event to Observe
 
-#### Separation of Concerns
+### Separation of Concerns
 
 ### Code Style
 --------------
