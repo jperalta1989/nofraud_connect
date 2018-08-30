@@ -408,7 +408,9 @@ happens in the course of the page load after clicking "Place Order").
 Originally, I wanted all API-related information to reside within the `Api\RequestHandler` class.
 However, there are now two places in the code with this full conditional statement typed out:
 
-```
+```php
+<?php
+
 // Use the NoFraud Sandbox URL if Sandbox Mode is enabled in Admin Config:
 //
 $apiUrl = $this->configHelper->getSandboxMode() ?
@@ -419,7 +421,9 @@ $apiUrl = $this->configHelper->getSandboxMode() ?
 I've noticed other modules have their API urls (both production and test) configurable from the Admin panel.
 If NoFraud's url's were similarly stored in the Config, the above block could be simplified to one function call:
 
-```
+```php
+<?php
+
 // Get the API URL:
 //
 $apiUrl = $this->configHelper->getApiUrl();
