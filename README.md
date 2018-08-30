@@ -281,7 +281,7 @@ For example, an array like the following would result in a flat list of choices:
 
 ```
 
-A nested array, however, results in grouped choices:
+A nested entry, however, results in a labeled group of choices:
 
 ```php
 <?php
@@ -298,16 +298,7 @@ A nested array, however, results in grouped choices:
                 'value' => 'payflow_express_bml',
                 'label' => 'PayPal Credit',
             ],
-            'hosted_pro' => [
-                'value' => 'hosted_pro',
-                'label' => 'Payment by cards or by PayPal account',
-            ],
         ],
-    ],
-
-    'braintree' => [
-        'value' => 'braintree',
-        'label' => 'Credit Card (Braintree)',
     ],
 
     'authorizenet_directpost' => [
@@ -318,7 +309,7 @@ A nested array, however, results in grouped choices:
 
 ```
 
-The Magento core function `\Magento\Payment\Helper\Data->getPaymentMethodList(true, true, true)`
+The Magento core function `\Magento\Payment\Helper\Data->getPaymentMethodList(...)`
 has a bug which results in offline payment methods being omitted from the output. The [bugfix](https://github.com/magento/magento2/issues/13460#issuecomment-388584826) is inexplicably [unavailable in M2.2](https://github.com/magento/magento2/issues/13460#issuecomment-388584826).
 
 I resorted to using the simpler `\Magento\Payment\Model\Config->getActiveMethods()`; however, this function also fails to retrieve a complete list. It's possible the payment processors which turn up missing have been implemented incorrectly and may need to be specially accounted for.
@@ -340,13 +331,29 @@ Contains a node related to obscuring the API Token field in the Config panel.
 </config>
 ```
 
-## Global vs Frontend Event Scope
+## Dispatch Event Considerations
 
-#### 
+### Global vs. Frontend Scope
+-----------------------------
+
+The `etc/events.xml` file resides in the global scope due to inconsistency between payment processors; some do not dispatch their events in the Frontend scope.
+
+### Potential for Duplicate API Calls
+-------------------------------------
+
+The `sales_order_payment_place_end` event can fire an indeterminate amount of times, as demonstrated by Authorize.net.
+Because of this, `Observer\SalesOrderPaymentPlaceEnd` contains conditional logic to ensure that duplicate API calls (and therefore duplicate NoFraud records) are not created.
+
+The first time that Authorize.net causes `..payment_place_end` to fire, the transaction has not been processed by their servers, and the `Payment` object available in Magento contains incomplete information.
+By the second time, the `Payment` has been populated with complete information, including the Authorize.net transaction ID (stored in the `last_trans_id` column).
+
+Thus, `Observer\SalesOrderPaymentPlaceEnd` does not process the transaction unless a `last_trans_id` is present, which solves the problem in Authorize.net's case. 
+While it's not likely, it is possible that a payment processor could fire `...payment_place_end` more than once, with the `Payment` object fully populated on the first occurence.
+This would render the conditional statement useless, resulting in duplicate API calls and duplicate records.
+
+Because of this, it may be worth the time to migrate the observer to listen for an event further down the checkout pipeline, which is less likely to be affected by payment processors (for example, `sales_order_place_after` or `checkout_submit_all_after`).
 
 ## Matters of Opinion
-
-### Which Event to Observe
 
 ### Separation of Concerns
 
