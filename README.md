@@ -24,23 +24,14 @@ All logging happens in `<magento_root_folder>/var/log/nofraud_connect/info.log`
 
 ## Flow of Execution (At Checkout)
 
-### `\NoFraud\Connect\Observer\SalesOrderPaymentPlaceEnd`
+### Observer\SalesOrderPaymentPlaceEnd
+--------------------------------------
 
 As far creating new NoFraud transaction records, this class is where it all happens.
 
 The observer listens for the `sales_order_payment_place_end` event, which dispatches after a payment is placed (`\Magento\Sales\Model\Order\Payment->place()`), and makes available the associated `Payment` object.
 
-> Listening to this particular event is largely out of my initial deference to the original M1 module, and in light of new information, listening to a later event may reduce complexity (see below). // LINK
-
-> #### A Note on Code Style
->
-> The code itself is a little verbose with regards to line count, but it's in the interest of keeping things dumb, lazy, and (if not always readable) comprehensible (and hopefully therefore easy to change). For example, wherever possible and practical, nested conditional prerequisites for a function call are avoided in favor of sequential "if (condition) then (stop execution)" statements which precede that function call.
->
-> Most functions in the module which rely on outside information require it to be passed in, so at the point of execution, much of the code is actually dedicated to _preparing_ to call the comparitively few functions which result in real record modifications.
->
-> Another large chunk, as described above, is dedicated to stopping execution at the earliest possible point (given that all this happens in the course of the page load after clicking "Place Order").
->
-> I want to mention all this now, because I think the following exemplifies these points, and similar patterns will be apparent throughout the rest of the code:
+> NOTE: Listening to this particular event is largely out of my initial deference to the original M1 module, and in light of new information, listening to a later event may reduce complexity (see below). // LINK
 
 #### What Happens During Execution:
 
@@ -76,14 +67,14 @@ The observer listens for the `sales_order_payment_place_end` event, which dispat
 
 This all relies on the following classes:
 
-### `\NoFraud\Connect\Helper\Config`
-------------------------------------
+### Helper\Config
+-----------------
 
 This class contains simple "getter" functions for each Admin Config setting, along with a few wrapper functions which compare provided input against Config values and return a boolean.
 
 #### Related Files
 
-##### `Model/Config/Source/EnabledPaymentMethods.php`
+##### Model/Config/Source/EnabledPaymentMethods.php
 
 This class serves to provide an array of enabled payment methods to the "Screened Payment Methods" multiselect option in the Admin Config.
 
@@ -150,7 +141,7 @@ has a bug which results in offline payment methods being omitted from the output
 
 I resorted to using the simpler `\Magento\Payment\Model\Config->getActiveMethods()`; however, this function also fails to retrieve a complete list. It's possible the payment processors which turn up missing have been implemented incorrectly and may need to be specially accounted for.
 
-##### `etc/di.xml`
+##### etc/di.xml
 
 Contains a node related to obscuring the API Token field in the Config panel.
 
@@ -166,20 +157,20 @@ Contains a node related to obscuring the API Token field in the Config panel.
 </config>
 ```
 
-##### `etc/adminhtml/system.xml` and `etc/acl.xml`
+##### etc/adminhtml/system.xml and etc/acl.xml
 
 These define the scope and structure of the Config panel.
 
-##### `etc/config.xml`
+##### etc/config.xml
 
 Defines default values for certain Config options.
 
-### `\NoFraud\Connect\Api\RequestHandler` 
------------------------------------------
+### Api\RequestHandler 
+----------------------
 
 This class contains only three public functions:
 
-#### `build( $payment, $order, $apiToken )`
+#### build( $payment, $order, $apiToken )
 
 Builds the body (a JSON object) for a `POST` request to the NoFraud API.
 
@@ -253,13 +244,13 @@ The full model accepted by the NoFraud API is [described here](https://portal.no
 }
 ```
 
-#### `send( $params, $apiUrl, $statusRequest = false )`
+#### send( $params, $apiUrl, $statusRequest = false )
 
 Sends requests to the NoFraud API and returns a `$resultMap` (see Protected Functions).
 
 By default, this function handles `POST` requests prepared by `build(...)`. If `$statusRequest` is truthy, then a `GET` request is sent instead, and `$params` is assumed to contain only an existing NoFraud Transaction ID and the NoFraud API token.
 
-#### `getTransactionStatus( $nofraudTransactionId, $apiToken, $apiUrl )`
+#### getTransactionStatus( $nofraudTransactionId, $apiToken, $apiUrl )
 
 A readability wrapper for retrieving the current status of a NoFraud transaction record via `send(...)`.
 
@@ -269,7 +260,7 @@ This function is currently only called from `\NoFraud\Connect\Cron\UpdateOrdersU
 
 Aside from the following, the remaining functions in this class all pertain to getting or formatting data from the `Order` and `Payment` objects passed into `build(...)`.
 
-##### `buildResultMap( $curlResult, $ch )`
+##### buildResultMap( $curlResult, $ch )
 
 Takes a curl result and connection and returns an array resembling the model below (keys with empty non-numeric values are removed).
 
@@ -290,7 +281,7 @@ Used in several places in the module, and referred to as `$resultMap` throughout
 ]
 ```
 
-##### `buildParamsAdditionalInfo( $payment )`
+##### buildParamsAdditionalInfo( $payment )
 
 This function accounts for the arbitrary values some payment processors place in the `Payment`'s `additional_information` column.
 
@@ -298,23 +289,23 @@ For example, PayPal Payments Pro and Braintree both place detailed credit card i
 
 Unfortunately, this means this function will need to be kept up-to-date with any changes made to each payment processor's own implementation.
 
-### `\NoFraud\Connect\Api\ResponseHandler` 
-------------------------------------------
+### Api\ResponseHandler 
+-----------------------
 
 This class is currently only responsible for building Status History Comments for `Order` objects, based on the `$resultMap` returned from `RequestHandler->send(...)`.
 
 It has two public functions.
 
-#### `buildComment( $resultMap )`
+#### buildComment( $resultMap )
 
 Responsible for building the initial Status History Comment applied to `Order`s at checkout. Has conditional logic to handle the different NoFraud response types, as well as API calls which resulted in HTTP client errors.
 
-#### `buildStatusUpdateComment( $resultMap )`
+#### buildStatusUpdateComment( $resultMap )
 
 Responsible for building comments to be applied when a "review" transaction's status has been updated to "pass" or "fail". This function does not contain the special exhaustive variant messages from `buildComment(...)`, so as to avoid adding new Status History Comments unless a proper update has been retrieved from NoFraud.
 
-### `\NoFraud\Connect\Logger\Logger` 
-------------------------------------
+### Logger\Logger 
+-----------------
 
 A simple custom logger used throughout.
 
@@ -328,11 +319,11 @@ etc/di.xml
 
 It also has two public functions:
 
-#### `logTransactionResults( $order, $payment, $resultMap )`
+#### logTransactionResults( $order, $payment, $resultMap )
 
 For logging the results of `POST` requests sent to the NoFraud API.
 
-#### `logFailure( $order, $exception )`
+#### logFailure( $order, $exception )
 
 For logging Exceptions thrown when failing to modify an `Order` model, along with the `Order`'s ID number.
 
@@ -346,3 +337,13 @@ For logging Exceptions thrown when failing to modify an `Order` model, along wit
 
 #### Separation of Concerns
 
+### Code Style
+--------------
+
+The code itself is a little verbose with regards to line count, but it's in the interest of keeping things dumb, lazy, and (if not always readable) comprehensible (and hopefully therefore easy to change). For example, wherever possible and practical, nested conditional prerequisites for a function call are avoided in favor of sequential "if (condition) then (stop execution)" statements which precede that function call.
+
+Most functions in the module which rely on outside information require it to be passed in, so at the point of execution, much of the code is actually dedicated to _preparing_ to call the comparitively few functions which result in real record modifications.
+
+Another large chunk, as described above, is dedicated to stopping execution at the earliest possible point (given that all this happens in the course of the page load after clicking "Place Order").
+
+I want to mention all this now, because I think the following exemplifies these points, and similar patterns will be apparent throughout the rest of the code:
