@@ -38,9 +38,11 @@ All logging happens in `<magento_root_folder>/var/log/nofraud_connect/info.log`
 
 As far creating new NoFraud transaction records, this class is where it all happens.
 
-The observer listens for the `sales_order_payment_place_end` event, which dispatches after a payment is placed (`\Magento\Sales\Model\Order\Payment->place()`), and makes available the associated `Payment` object.
+The observer listens for the `sales_order_payment_place_end` event, which dispatches after a payment is placed 
+(`\Magento\Sales\Model\Order\Payment->place()`), and makes available the associated `Payment` object.
 
-> NOTE: Listening to this particular event is largely out of my initial deference to the original M1 module, and in light of new information, listening to a later event may reduce complexity (see below). // LINK
+> NOTE: Listening to this particular event is largely out of my initial deference to the original M1 module, 
+and in light of new information, listening to a later event may reduce complexity (see below). // LINK
 
 #### What Happens During Execution:
 
@@ -79,7 +81,8 @@ This all relies on the following classes:
 ### Helper\Config
 -----------------
 
-This class contains simple "getter" functions for each Admin Config setting, along with a few wrapper functions which compare provided input against Config values and return a boolean.
+This class contains simple "getter" functions for each Admin Config setting, along with a few wrapper functions 
+which compare provided input against Config values and return a boolean.
 
 ### Api\RequestHandler 
 ----------------------
@@ -164,7 +167,8 @@ The full model accepted by the NoFraud API is [described here](https://portal.no
 
 Sends requests to the NoFraud API and returns a `$resultMap` (see Protected Functions).
 
-By default, this function handles `POST` requests prepared by `build(...)`. If `$statusRequest` is truthy, then a `GET` request is sent instead, and `$params` is assumed to contain only an existing NoFraud Transaction ID and the NoFraud API token.
+By default, this function handles `POST` requests prepared by `build(...)`. If `$statusRequest` is truthy, then a `GET` request is sent instead, 
+and `$params` is assumed to contain only an existing NoFraud Transaction ID and the NoFraud API token.
 
 #### RequestHandler public function getTransactionStatus( $nofraudTransactionId, $apiToken, $apiUrl )
 
@@ -203,24 +207,29 @@ Used in several places in the module, and referred to as `$resultMap` throughout
 
 This function accounts for the arbitrary values some payment processors place in the `Payment`'s `additional_information` column.
 
-For example, PayPal Payments Pro and Braintree both place detailed credit card information in `additional_information` rather than the correct corresponding columns Magento already provides (`cc_last4`, `cc_avs_status`, etc.).
+For example, PayPal Payments Pro and Braintree both place detailed credit card information in `additional_information` rather 
+than in the correct corresponding columns Magento already provides (`cc_last4`, `cc_avs_status`, etc.).
 
 Unfortunately, this means this function will need to be kept up-to-date with any changes made to each payment processor's own implementation.
 
 ### Api\ResponseHandler 
 -----------------------
 
-This class is currently only responsible for building Status History Comments for `Order` objects, based on the `$resultMap` returned from `RequestHandler->send(...)`.
+This class is currently only responsible for building Status History Comments for `Order` objects, 
+based on the `$resultMap` returned from `RequestHandler->send(...)`.
 
 It has two public functions.
 
 #### ResponseHandler public function buildComment( $resultMap )
 
-Responsible for building the initial Status History Comment applied to `Order`s at checkout. Has conditional logic to handle the different NoFraud response types, as well as API calls which resulted in HTTP client errors.
+Responsible for building the initial Status History Comment applied to `Order`s at checkout. 
+Has conditional logic to handle the different NoFraud response types, as well as API calls which resulted in HTTP client errors.
 
 #### ResponseHandler public function buildStatusUpdateComment( $resultMap )
 
-Responsible for building comments to be applied when a "review" transaction's status has been updated to "pass" or "fail". This function does not contain the special exhaustive variant messages from `buildComment(...)`, so as to avoid adding new Status History Comments unless a proper update has been retrieved from NoFraud.
+Responsible for building comments to be applied when a "review" transaction's status has been updated to "pass" or "fail". 
+This function does not contain the special exhaustive variant messages from `buildComment(...)`, 
+so as to avoid adding new Status History Comments unless a proper update has been retrieved from NoFraud.
 
 ### Logger\Logger 
 -----------------
@@ -310,9 +319,12 @@ A nested entry, however, results in a labeled group of choices:
 ```
 
 The Magento core function `\Magento\Payment\Helper\Data->getPaymentMethodList(...)`
-has a bug which results in offline payment methods being omitted from the output. The [bugfix](https://github.com/magento/magento2/issues/13460#issuecomment-388584826) is inexplicably [unavailable in M2.2](https://github.com/magento/magento2/issues/13460#issuecomment-388584826).
+has a bug which results in offline payment methods being omitted from the output. 
+The [bugfix](https://github.com/magento/magento2/issues/13460#issuecomment-388584826) is inexplicably 
+[unavailable in M2.2](https://github.com/magento/magento2/issues/13460#issuecomment-388584826).
 
-I resorted to using the simpler `\Magento\Payment\Model\Config->getActiveMethods()`; however, this function also fails to retrieve a complete list. It's possible the payment processors which turn up missing have been implemented incorrectly and may need to be specially accounted for.
+I resorted to using the simpler `\Magento\Payment\Model\Config->getActiveMethods()`; however, this function also fails to retrieve a complete list. 
+It's possible the payment processors which turn up missing have been implemented incorrectly and may need to be specially accounted for.
 
 ### etc/di.xml
 --------------
@@ -342,28 +354,62 @@ The `etc/events.xml` file resides in the global scope due to inconsistency betwe
 -------------------------------------
 
 The `sales_order_payment_place_end` event can fire an indeterminate amount of times, as demonstrated by Authorize.net.
-Because of this, `Observer\SalesOrderPaymentPlaceEnd` contains conditional logic to ensure that duplicate API calls (and therefore duplicate NoFraud records) are not created.
+Because of this, `Observer\SalesOrderPaymentPlaceEnd` contains conditional logic to ensure that duplicate API calls 
+(and therefore duplicate NoFraud records) are not created.
 
-The first time that Authorize.net causes `..payment_place_end` to fire, the transaction has not been processed by their servers, and the `Payment` object available in Magento contains incomplete information.
-By the second time, the `Payment` has been populated with complete information, including the Authorize.net transaction ID (stored in the `last_trans_id` column).
+The first time that Authorize.net causes `..payment_place_end` to fire, the transaction has not been processed by their servers, 
+and the `Payment` object available in Magento contains incomplete information.
+By the second time, the `Payment` has been populated with complete information, 
+including the Authorize.net transaction ID (stored in the `last_trans_id` column).
 
 Thus, `Observer\SalesOrderPaymentPlaceEnd` does not process the transaction unless a `last_trans_id` is present, which solves the problem in Authorize.net's case. 
-While it's not likely, it is possible that a payment processor could fire `...payment_place_end` more than once, with the `Payment` object fully populated on the first occurence.
+While it's not likely, it is possible that a payment processor could fire `...payment_place_end` more than once, 
+with the `Payment` object fully populated on the first occurence.
 This would render the conditional statement useless, resulting in duplicate API calls and duplicate records.
 
-Because of this, it may be worth the time to migrate the observer to listen for an event further down the checkout pipeline, which is less likely to be affected by payment processors (for example, `sales_order_place_after` or `checkout_submit_all_after`).
+Because of this, it may be worth the time to migrate the observer to listen for an event further down the checkout pipeline, 
+which is less likely to be affected by payment processors (for example, `sales_order_place_after` or `checkout_submit_all_after`).
 
 ## Matters of Opinion
-
-### Separation of Concerns
 
 ### Code Style
 --------------
 
-The code itself is a little verbose with regards to line count, but it's in the interest of keeping things dumb, lazy, and (if not always readable) comprehensible (and hopefully therefore easy to change). For example, wherever possible and practical, nested conditional prerequisites for a function call are avoided in favor of sequential "if (condition) then (stop execution)" statements which precede that function call.
+The code itself is a little verbose with regards to line count, but it's in the interest of keeping things dumb, lazy, and 
+(if not always readable) comprehensible (and hopefully therefore easy to change). For example, wherever possible and practical,
+nested conditional prerequisites for a function call are avoided in favor of sequential "if (condition) then (stop execution)" 
+statements which precede that function call.
 
-Most functions in the module which rely on outside information require it to be passed in, so at the point of execution, much of the code is actually dedicated to _preparing_ to call the comparitively few functions which result in real record modifications.
+Most functions in the module which rely on outside information require it to be passed in, so at the point of execution, much 
+of the code is actually dedicated to _preparing_ to call the comparitively few functions which result in real record modifications.
 
-Another large chunk, as described above, is dedicated to stopping execution at the earliest possible point (given that all this happens in the course of the page load after clicking "Place Order").
+Another large chunk, as described above, is dedicated to stopping execution at the earliest possible point (given that the main execution 
+happens in the course of the page load after clicking "Place Order").
 
-I want to mention all this now, because I think the following exemplifies these points, and similar patterns will be apparent throughout the rest of the code:
+### Separation of Concerns
+--------------------------
+
+Originally, I wanted all API-related information to reside within the `Api\RequestHandler` class.
+However, there are now two places in the code with this full conditional statement typed out:
+
+```
+// Use the NoFraud Sandbox URL if Sandbox Mode is enabled in Admin Config:
+//
+$apiUrl = $this->configHelper->getSandboxMode() ?
+    $this->requestHandler::SANDBOX_URL          :
+    $this->requestHandler::PRODUCTION_URL       ;
+```
+
+I've noticed other modules have their API urls (both production and test) configurable from the Admin panel.
+If NoFraud's url's were similarly stored in the Config, the above block could be simplified to one function call:
+
+```
+// Get the API URL:
+//
+$apiUrl = $this->configHelper->getApiUrl();
+```
+
+#### Why Not Inject Helper\Config as a Dependency of Api\RequestHelper?
+
+Since `Observer\SalesOrderPaymentPlaceEnd` and `Cron\UpdateOrdersUnderReview` depend on both `Helper\Config` and `Api\RequestHelper`, 
+that would mean that `Helper\Config` would be instantiated twice in the course of executing single functions, which made me vomit a little.
