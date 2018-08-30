@@ -4,9 +4,11 @@ Integrates NoFraud's post-payment-gateway API functionality into Magento 2.
 
 ## Sections
 
-*
-*
-*
+* [ Getting Started ](#markdown-header-getting-started)
+    * [ Troubleshooting ](#markdown-header-troubleshooting)
+* [ Flow of Execution (Checkout) ](#markdown-header-flow-of-execution-checkout)
+* [ Flow of Execution (Updating Orders Marked for Review) ](#markdown-header-flow-of-execution-updating-orders-marked-for-review)
+* [ Admin Panel Special Configuration ](#markdown-header-admin-panel-special-configuration)
 
 ## Getting Started
 
@@ -24,11 +26,12 @@ php ~/current/bin/magento setup:upgrade
 ### Configuration
 -----------------
 
-## Troubleshooting
+### Troubleshooting
+-------------------
 
 All logging happens in `<magento_root_folder>/var/log/nofraud_connect/info.log`
 
-## Flow of Execution (At Checkout)
+## Flow of Execution (Checkout)
 
 ### Observer\SalesOrderPaymentPlaceEnd
 --------------------------------------
