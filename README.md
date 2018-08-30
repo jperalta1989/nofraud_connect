@@ -5,10 +5,26 @@ Integrates NoFraud's post-payment-gateway API functionality into Magento 2.
 ## Sections
 
 * [ Getting Started ](#markdown-header-getting-started)
+    * [ Installation ](#markdown-header-installation)
+    * [ Configuration ](#markdown-header-configuration)
     * [ Troubleshooting ](#markdown-header-troubleshooting)
 * [ Flow of Execution (Checkout) ](#markdown-header-flow-of-execution-checkout)
+    * [ Observer\SalesOrderPaymentPlaceEnd ](#markdown-header-observersalesorderpaymentplaceend)
+    * [ Helper\Config ](#markdown-header-helperconfig)
+    * [ Api\RequestHandler ](#markdown-header-apirequesthandler)
+    * [ Api\ResponseHandler ](#markdown-header-apiresponsehandler)
+    * [ Logger\Logger ](#markdown-header-loggerlogger)
 * [ Flow of Execution (Updating Orders Marked for Review) ](#markdown-header-flow-of-execution-updating-orders-marked-for-review)
+    * [ Cron\UpdateOrdersUnderReview ](#markdown-header-cronupdateordersunderreview)
 * [ Admin Panel Special Configuration ](#markdown-header-admin-panel-special-configuration)
+    * [ Model\Config\Source\EnabledPaymentMethods ](#markdown-header-modelconfigsourceenabledpaymentmethods)
+    * [ etc/di.xml ](#markdown-header-etcdixml)
+* [Dispatch Event Considerations](#markdown-header-dispatch-event-considerations)
+    * [ Global vs. Frontend Scope ](#markdown-header-global-vs-frontend-scope)
+    * [ Potential for Duplicate API Calls ](#markdown-header-potential-for-duplicate-api-calls)
+* [Matters of Opinion](#markdown-header-matters-of-opinion)
+    * [ Code Style ](#markdown-header-code-style)
+    * [ Separation of Concerns ](#markdown-header-separation-of-concerns)
 
 ## Getting Started
 
