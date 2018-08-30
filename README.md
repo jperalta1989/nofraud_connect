@@ -72,98 +72,9 @@ This all relies on the following classes:
 
 This class contains simple "getter" functions for each Admin Config setting, along with a few wrapper functions which compare provided input against Config values and return a boolean.
 
-#### Related Files
 
-##### Model/Config/Source/EnabledPaymentMethods.php
 
-This class serves to provide an array of enabled payment methods to the "Screened Payment Methods" multiselect option in the Admin Config.
 
-The way this array is constructed is less important than the format of the output.
-
-For example, the following will result in a flat list of choices:
-
-```php
-<?php
-
-[
-    'braintree' => [
-        'value' => 'braintree',
-        'label' => 'Credit Card (Braintree)',
-    ],
-
-    'authorizenet_directpost' => [
-        'value' => 'authorizenet_directpost',
-        'label' => 'Credit Card Direct Post (Authorize.net)',
-    ],
-]
-
-```
-
-A nested array, however, results in grouped choices:
-
-```php
-<?php
-
-[
-    'paypal' => [
-        'label' => 'PayPal', // <- group 'label'
-        'value' => [         // <- group 'value' (array of choices in the group)
-            'paypal_billing_agreement' => [
-                'value' => 'paypal_billing_agreement',
-                'label' => 'PayPal Billing Agreement',
-            ],
-            'payflow_express_bml' => [
-                'value' => 'payflow_express_bml',
-                'label' => 'PayPal Credit',
-            ],
-            'hosted_pro' => [
-                'value' => 'hosted_pro',
-                'label' => 'Payment by cards or by PayPal account',
-            ],
-        ],
-    ],
-
-    'braintree' => [
-        'value' => 'braintree',
-        'label' => 'Credit Card (Braintree)',
-    ],
-
-    'authorizenet_directpost' => [
-        'value' => 'authorizenet_directpost',
-        'label' => 'Credit Card Direct Post (Authorize.net)',
-    ],
-]
-
-```
-
-The Magento core function `\Magento\Payment\Helper\Data->getPaymentMethodList(true, true, true)`
-has a bug which results in offline payment methods being omitted from the output. The [bugfix](https://github.com/magento/magento2/issues/13460#issuecomment-388584826) is inexplicably [unavailable in M2.2](https://github.com/magento/magento2/issues/13460#issuecomment-388584826).
-
-I resorted to using the simpler `\Magento\Payment\Model\Config->getActiveMethods()`; however, this function also fails to retrieve a complete list. It's possible the payment processors which turn up missing have been implemented incorrectly and may need to be specially accounted for.
-
-##### etc/di.xml
-
-Contains a node related to obscuring the API Token field in the Config panel.
-
-```xml
-<config>
-    <type name="Magento\Config\Model\Config\TypePool">
-        <arguments>
-            <argument name="sensitive" xsi:type="array">
-                <item name="nofraud_connect/general/api_token" xsi:type="string">1</item>
-            </argument>
-        </arguments>
-    </type>
-</config>
-```
-
-##### etc/adminhtml/system.xml and etc/acl.xml
-
-These define the scope and structure of the Config panel.
-
-##### etc/config.xml
-
-Defines default values for certain Config options.
 
 ### Api\RequestHandler 
 ----------------------
@@ -326,6 +237,95 @@ For logging the results of `POST` requests sent to the NoFraud API.
 #### logFailure( $order, $exception )
 
 For logging Exceptions thrown when failing to modify an `Order` model, along with the `Order`'s ID number.
+
+## Flow of Execution (Cron\UpdateOrdersUnderReview)
+
+## Admin Panel Special Configuration
+
+### Model/Config/Source/EnabledPaymentMethods.php
+-------------------------------------------------
+
+This class only defines a `toOptionArray()` function. It serves to provide a list of enabled payment methods for the "Screened Payment Methods" multiselect option in the Admin Config.
+
+The way this array is constructed is less important than the format of the output.
+
+For example, an array like the following would result in a flat list of choices:
+
+```php
+<?php
+
+[
+    'braintree' => [
+        'value' => 'braintree',
+        'label' => 'Credit Card (Braintree)',
+    ],
+
+    'authorizenet_directpost' => [
+        'value' => 'authorizenet_directpost',
+        'label' => 'Credit Card Direct Post (Authorize.net)',
+    ],
+]
+
+```
+
+A nested array, however, results in grouped choices:
+
+```php
+<?php
+
+[
+    'paypal' => [
+        'label' => 'PayPal', // <- group 'label'
+        'value' => [         // <- group 'value' (array of choices in the group)
+            'paypal_billing_agreement' => [
+                'value' => 'paypal_billing_agreement',
+                'label' => 'PayPal Billing Agreement',
+            ],
+            'payflow_express_bml' => [
+                'value' => 'payflow_express_bml',
+                'label' => 'PayPal Credit',
+            ],
+            'hosted_pro' => [
+                'value' => 'hosted_pro',
+                'label' => 'Payment by cards or by PayPal account',
+            ],
+        ],
+    ],
+
+    'braintree' => [
+        'value' => 'braintree',
+        'label' => 'Credit Card (Braintree)',
+    ],
+
+    'authorizenet_directpost' => [
+        'value' => 'authorizenet_directpost',
+        'label' => 'Credit Card Direct Post (Authorize.net)',
+    ],
+]
+
+```
+
+The Magento core function `\Magento\Payment\Helper\Data->getPaymentMethodList(true, true, true)`
+has a bug which results in offline payment methods being omitted from the output. The [bugfix](https://github.com/magento/magento2/issues/13460#issuecomment-388584826) is inexplicably [unavailable in M2.2](https://github.com/magento/magento2/issues/13460#issuecomment-388584826).
+
+I resorted to using the simpler `\Magento\Payment\Model\Config->getActiveMethods()`; however, this function also fails to retrieve a complete list. It's possible the payment processors which turn up missing have been implemented incorrectly and may need to be specially accounted for.
+
+### etc/di.xml
+--------------
+
+Contains a node related to obscuring the API Token field in the Config panel.
+
+```xml
+<config>
+    <type name="Magento\Config\Model\Config\TypePool">
+        <arguments>
+            <argument name="sensitive" xsi:type="array">
+                <item name="nofraud_connect/general/api_token" xsi:type="string">1</item>
+            </argument>
+        </arguments>
+    </type>
+</config>
+```
 
 #### Global vs Frontend Event Scope
 
