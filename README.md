@@ -1,4 +1,4 @@
-# FormCop (M2)
+# NoFraud Connect (M2)
 
 Integrates NoFraud's post-payment-gateway API functionality into Magento 2.
 
@@ -72,16 +72,12 @@ This all relies on the following classes:
 
 This class contains simple "getter" functions for each Admin Config setting, along with a few wrapper functions which compare provided input against Config values and return a boolean.
 
-
-
-
-
 ### Api\RequestHandler 
 ----------------------
 
 This class contains only three public functions:
 
-#### build( $payment, $order, $apiToken )
+#### public function build( $payment, $order, $apiToken )
 
 Builds the body (a JSON object) for a `POST` request to the NoFraud API.
 
@@ -155,23 +151,25 @@ The full model accepted by the NoFraud API is [described here](https://portal.no
 }
 ```
 
-#### send( $params, $apiUrl, $statusRequest = false )
+#### public function send( $params, $apiUrl, $statusRequest = false )
 
 Sends requests to the NoFraud API and returns a `$resultMap` (see Protected Functions).
 
 By default, this function handles `POST` requests prepared by `build(...)`. If `$statusRequest` is truthy, then a `GET` request is sent instead, and `$params` is assumed to contain only an existing NoFraud Transaction ID and the NoFraud API token.
 
-#### getTransactionStatus( $nofraudTransactionId, $apiToken, $apiUrl )
+#### public function getTransactionStatus( $nofraudTransactionId, $apiToken, $apiUrl )
 
 A readability wrapper for retrieving the current status of a NoFraud transaction record via `send(...)`.
 
 This function is currently only called from `\NoFraud\Connect\Cron\UpdateOrdersUnderReview`.
 
-#### Notable Protected Functions
+#### RequestHandler Protected Functions
 
-Aside from the following, the remaining functions in this class all pertain to getting or formatting data from the `Order` and `Payment` objects passed into `build(...)`.
+The remaining functions in this class almost all pertain to getting or formatting data from the `Order` and `Payment` objects passed into `build(...)`.
 
-##### buildResultMap( $curlResult, $ch )
+The following two are worth mentioning:
+
+#### protected function buildResultMap( $curlResult, $ch )
 
 Takes a curl result and connection and returns an array resembling the model below (keys with empty non-numeric values are removed).
 
@@ -192,7 +190,7 @@ Used in several places in the module, and referred to as `$resultMap` throughout
 ]
 ```
 
-##### buildParamsAdditionalInfo( $payment )
+#### protected function buildParamsAdditionalInfo( $payment )
 
 This function accounts for the arbitrary values some payment processors place in the `Payment`'s `additional_information` column.
 
@@ -207,11 +205,11 @@ This class is currently only responsible for building Status History Comments fo
 
 It has two public functions.
 
-#### buildComment( $resultMap )
+#### public function buildComment( $resultMap )
 
 Responsible for building the initial Status History Comment applied to `Order`s at checkout. Has conditional logic to handle the different NoFraud response types, as well as API calls which resulted in HTTP client errors.
 
-#### buildStatusUpdateComment( $resultMap )
+#### public function buildStatusUpdateComment( $resultMap )
 
 Responsible for building comments to be applied when a "review" transaction's status has been updated to "pass" or "fail". This function does not contain the special exhaustive variant messages from `buildComment(...)`, so as to avoid adding new Status History Comments unless a proper update has been retrieved from NoFraud.
 
@@ -230,15 +228,19 @@ etc/di.xml
 
 It also has two public functions:
 
-#### logTransactionResults( $order, $payment, $resultMap )
+#### public function logTransactionResults( $order, $payment, $resultMap )
 
 For logging the results of `POST` requests sent to the NoFraud API.
 
-#### logFailure( $order, $exception )
+#### public function logFailure( $order, $exception )
 
 For logging Exceptions thrown when failing to modify an `Order` model, along with the `Order`'s ID number.
 
-## Flow of Execution (Cron\UpdateOrdersUnderReview)
+## Flow of Execution (Updating Orders Marked for Review)
+
+### Cron\UpdateOrdersUnderReview
+--------------------------------
+
 
 ## Admin Panel Special Configuration
 
