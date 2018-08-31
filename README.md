@@ -275,6 +275,114 @@ For logging Exceptions thrown when failing to modify an `Order` model, along wit
 ### Cron\UpdateOrdersUnderReview
 --------------------------------
 
+When a new transaction is posted to the NoFraud API, a decision is returned ("pass", "fail", or "review"),
+along with a unique transaction ID.
+
+Transactions marked for review will eventually be updated to "pass" or "fail" in the NoFraud database, and
+these changes need to be reflected in the Magento so the appropriate `Order` status updates can be applied.
+
+While this cron job is ultimately concerned with updating `Order` models, there is no easy way (after the fact)
+to identify which Orders have been marked for review. Rather than create a new table to keep track of this,
+I decided to use the `additional_information` field in the `Payment` object associated with the `Order`.
+
+So, during checkout, if a decision is received from NoFraud, then both the decision code ("pass", "fail", or "review")
+and the unique NoFraud transaction ID are stored in the `Payment`'s `additional_information['nofraud_response']` key.
+
+With this in place, the cron job proceeds as follows (in terms of changes to the database):
+
+1. Get all `Payment`s where `additional_information` contains a key/value `['nofraud_decision' => 'review']`;
+1. If no `Payment`s are marked for review, then:
+    1. Stop execution.
+1. For each `Payment` marked for review:
+    1. Get the current NoFraud decision from the NoFraud API;
+    1. If a good response was received (no server/client errors), then:
+        1. Get the `Order` from the `Payment`;
+    1. If the NoFraud decision has been updated to "pass" or "fail", then:
+        1. Update `Order` Status according to Admin Config;
+        1. Add a Status History Comment to the `Order`;
+        1. Update `Payment`'s `additional_information['nofraud_response']` key;
+        1. Save the Order.
+
+#### PaymentRepository and SearchCriteriaBuilder
+
+I found a neat way to build database queries in Magento before actually firing them, and I decided to leverage that.
+I know that Magento does lazy database queries by default, so there may be no actual performance benefit to using these classes,
+but I find it makes it clearer what's going on.
+
+The cron's constructor takes a:
+
+* `\Magento\Framework\Api\SearchCriteriaBuilder $criteriaBuilder`, and a
+* `\Magento\Sales\Api\OrderPaymentRepositoryInterface $paymentRepository`
+
+The `$criteriaBuilder` does exactly what it sounds like. After adding the appropriate search filters,
+calling `$criteriaBuilder->create()` returns a `\Magento\Framework\Api\SearchCriteria` object.
+
+```php
+<?php
+
+$criteria = $this->criteriaBuilder
+    ->addFilter(
+        'additional_information',
+        '%nofraud_decision___review%',
+        'like'
+    )->create();
+```
+
+This can be passed to a Repository's `getList()` function, which will return a corresponding variation of `\Magento\Framework\Api\SearchResult`.
+Calling `$searchResult->getItems()` will return an actual `Array` containing the objects returned from the database (in this case a `\Magento\Sales\Api\Data\OrderPaymentInterface[]`),
+
+```php
+<?php
+
+$searchResult = $this->paymentRepository->getList( $criteria );
+$paymentsUnderReview = $searchResult->getItems();
+```
+
+#### Explaining the Search Criteria
+
+The search criteria translates to
+
+```sql
+SELECT * FROM sales_order_payment WHERE additional_information LIKE '%nofraud_decision___review%'
+```
+
+I figured matching the plain text in the database column would be better than loading every `Payment` object, 
+then calling `getAdditionalInformation()` on each one of them, etc.
+
+The `additional_information` column is in plain text JSON format. An example value containing a NoFraud decision looks like this:
+
+```json
+{
+   "method_title":"Credit Card (Braintree)",
+   "avsPostalCodeResponseCode":"M",
+   "avsStreetAddressResponseCode":"M",
+   "cvvResponseCode":"M",
+   "processorAuthorizationCode":"JLTB38",
+   "processorResponseCode":"1000",
+   "processorResponseText":"Approved",
+   "cc_number":"xxxx-1111",
+   "cc_type":"Visa",
+   "nofraud_response":{
+      "nofraud_decision":"pass",
+      "nofraud_transaction_id":"f086396d-b948-5070-983c-f88d04469bf9"
+   }
+}
+```
+
+So, if a transaction was marked for review, the text `"nofraud_decision":"review"` will occur somewhere in the column.
+In SQL, an underscore represents any single character, so this will be matched by `'%nofraud_decision___review%'`.
+It might be less specific, but I think it looks nicer than `'%\"nofraud\_decision\":\"review\"%'`. 
+
+```php
+<?php
+
+$criteria = $this->criteriaBuilder
+    ->addFilter(
+        'additional_information',
+        '%nofraud_decision___review%',
+        'like'
+    )->create();
+```
 
 ## Admin Panel Special Configuration
 
