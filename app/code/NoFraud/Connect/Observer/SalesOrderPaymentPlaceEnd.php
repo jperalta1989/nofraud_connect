@@ -37,6 +37,17 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             return;
         }
 
+        // If the payment has NOT been processed by a payment processor, AND
+        // is NOT an offline payment method, then do nothing.
+        //
+        // Some payment processors like Authorize.net may cause this Event to fire
+        // multiple times, but the logic below this point should not be executed
+        // unless the Payment has a `last_trans_id` attribute.
+        //
+        if ( !$payment->getLastTransId() && !$payment->getMethodInstance()->isOffline() ){
+            return;
+        }
+
 
 
         // get \Magento\Sales\Model\Order
@@ -46,17 +57,6 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         // If Orders with the current Order's Status are ignored, then do nothing.
         //
         if ( $this->configHelper->orderStatusIsIgnored($order) ){
-            return;
-        }
-
-        // If the payment has NOT been processed by a payment processor, AND
-        // is NOT an offline payment method, then do nothing.
-        //
-        // Some payment processors like Authorize.net may cause this Event to fire
-        // multiple times, but the logic below this point should not be executed
-        // unless the Payment has a `last_trans_id` attribute.
-        //
-        if ( !$payment->getLastTransId() && !$payment->getMethodInstance()->isOffline() ){
             return;
         }
 
