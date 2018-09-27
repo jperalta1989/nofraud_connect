@@ -9,12 +9,14 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         \NoFraud\Connect\Helper\Config $configHelper,
         \NoFraud\Connect\Api\RequestHandler $requestHandler,
         \NoFraud\Connect\Api\ResponseHandler $responseHandler,
-        \NoFraud\Connect\Logger\Logger $logger
+        \NoFraud\Connect\Logger\Logger $logger,
+        \Magento\Sales\Model\ResourceModel\Order\Status\CollectionFactory $orderStatusCollection
     ) {
         $this->configHelper = $configHelper;
         $this->requestHandler = $requestHandler;
         $this->responseHandler = $responseHandler;
         $this->logger = $logger;
+        $this->orderStatusCollection = $orderStatusCollection;
     }
 
     public function execute( \Magento\Framework\Event\Observer $observer )
@@ -45,7 +47,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         // get \Magento\Sales\Model\Order
         //
         $order = $payment->getOrder();
-        
+
         // If Orders with the current Order's Status are ignored, then do nothing.
         //
         if ( $this->configHelper->orderStatusIsIgnored($order) ){
@@ -70,7 +72,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         $apiToken = $this->configHelper->getApiToken();
 
         // Use the NoFraud Sandbox URL if Sandbox Mode is enabled in Admin Config:
-        // 
+        //
         $apiUrl = $this->configHelper->getSandboxMode() ?
             $this->requestHandler::SANDBOX_URL          :
             $this->requestHandler::PRODUCTION_URL       ;
@@ -79,10 +81,10 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         //
         $request = $this->requestHandler->build(
             $payment,
-            $order, 
+            $order,
             $apiToken
         );
- 
+
         // Send the request to the NoFraud API and get the response:
         //
         $resultMap = $this->requestHandler->send($request, $apiUrl);
@@ -99,19 +101,27 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
 
             // For all API responses (official results from NoFraud, client errors, etc.),
             // add an informative comment to the Order in Magento Admin:
-            // 
+            //
             $comment = $this->responseHandler->buildComment($resultMap);
             if ( !empty($comment) ){
                 $order->addStatusHistoryComment($comment);
             }
 
-            // For official results from from NoFraud, update the order status 
+            // For official results from from NoFraud, update the order status
             // according to Admin Config preferences:
             //
             if ( isset( $resultMap['http']['response']['body'] ) ){
                 $newStatus = $this->orderStatusFromConfig( $resultMap['http']['response']['body'] );
-                if ( !empty($newStatus) ){
-                    $order->setStatus( $newStatus );
+            }
+
+            // Update state and status. Run function for holded status.
+            if ( !empty($newStatus) ){
+                $newState = $this->stateFromStatus($newStatus);
+
+                if ($newStatus == 'holded'){
+                    $order->hold();
+                } else if ($newState) {
+                    $order->setStatus($newStatus)->setState($newState);
                 }
             }
 
@@ -141,4 +151,15 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         }
     }
 
+    protected function stateFromStatus($state)
+    {
+        $statuses = $this->orderStatusCollection->create()->joinStates();
+        $stateIndex = [];
+
+        foreach ($statuses as $status) {
+            $stateIndex[$status->getStatus()] = $status->getState();
+        }
+
+        return $stateIndex[$state] ?? null;
+    }
 }
