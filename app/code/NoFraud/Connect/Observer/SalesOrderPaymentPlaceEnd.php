@@ -2,6 +2,8 @@
 
 namespace NoFraud\Connect\Observer;
 
+use Magento\Sales\Model\Order;
+
 class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInterface
 {
 
@@ -118,7 +120,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             if ( !empty($newStatus) ){
                 $newState = $this->stateFromStatus($newStatus);
 
-                if ($newStatus == 'holded'){
+                if ($newStatus == Order::STATE_HOLDED) {
                     $order->hold();
                 } else if ($newState) {
                     $order->setStatus($newStatus)->setState($newState);
