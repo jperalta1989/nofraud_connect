@@ -97,7 +97,10 @@ class RequestHandler
         if (empty( $order->getXForwardedFor() )){
             $baseParams['customerIP'] = $order->getRemoteIp();
         } else {
-            $baseParams['customerIP'] = $order->getXForwardedFor();
+            //get original customer Ip address (in case customer is being routed through proxies)
+            //Syntax: X-Forwarded-For: <client>, <proxy1>, <proxy2>
+            $ips = array_filter(explode( ', ', $order->getXForwardedFor()));
+            $baseParams['customerIP'] = $ips[0];
         }
 
         if (!empty( $payment->getCcAvsStatus() )) {
