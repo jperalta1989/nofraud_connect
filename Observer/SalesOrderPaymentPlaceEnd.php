@@ -88,7 +88,6 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         );
 
         // Send the request to the NoFraud API and get the response:
-        //
         $resultMap = $this->requestHandler->send($request, $apiUrl);
 
 

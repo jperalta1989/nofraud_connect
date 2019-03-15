@@ -5,12 +5,16 @@ namespace NoFraud\Connect\Helper;
 class Config extends \Magento\Framework\App\Helper\AbstractHelper
 {
     const GENERAL = 'nofraud_connect/general';
+    const ORDER_STATUSES = 'nofraud_connect/order_statuses';
+
+    const ORDER_STATUSES_PASS = self::ORDER_STATUSES . '/pass';
+    const ORDER_STATUSES_PASS = self::ORDER_STATUSES . '/review';
     const GENERAL_ENABLED = self::GENERAL . '/enabled';
     const GENERAL_API_TOKEN = self::GENERAL . '/api_token';
     const GENERAL_SANDBOX_MODE = self::GENERAL . '/sandbox_enabled';
     const GENERAL_SCREENED_ORDER_STATUS = self::GENERAL . '/screened_order_status';
+    const GENERAL_AUTO_CANCEL = self::GENERAL . '/auto_cancel';
 
-    const ORDER_STATUSES = 'nofraud_connect/order_statuses';
     protected $orderStatusesKeys = [
         'pass',
         'review',
@@ -74,6 +78,21 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     public function getScreenedOrderStatus()
     {
         return $this->scopeConfig->getValue(self::GENERAL_SCREENED_ORDER_STATUS);
+    }
+
+    public function getAutoCancel()
+    {
+        return $this->scopeConfig->getValue(self::GENERAL_AUTO_CANCEL);
+    }
+
+    public function getOrderStatusPass()
+    {
+        return $this->scopeConfig->getValue(self::ORDER_STATUSES_PASS);
+    }
+
+    public function getOrderStatusReview()
+    {
+        return $this->scopeConfig->getValue(self::ORDER_STATUSES_REVIEW);
     }
 
     public function getCustomStatusConfig( $key )

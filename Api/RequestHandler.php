@@ -22,8 +22,8 @@ class RequestHandler
         \Magento\Directory\Model\Currency $currency,
         \NoFraud\Connect\Logger\Logger $logger
     ) {
-        $this->currency = $currency;
-        $this->logger = $logger;
+        $this->_currency = $currency;
+        $this->_logger = $logger;
     }
 
     /**
@@ -51,19 +51,25 @@ class RequestHandler
      * @param array  $params | NoFraud request object parameters
      * @param string $apiUrl | The URL to send to
      */
-    public function send( $params, $apiUrl )
+    public function send( $params, $apiUrl, $requestType = 'POST')
     {
         $ch = curl_init();
 
-        $body = json_encode($params);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($body)));
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-        curl_setopt($ch, CURLOPT_URL, $apiUrl );
+        if (!strcasecmp($requestType,'post')) {
+            $body = json_encode($params);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($body)));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        }
+
         curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
+        curl_setopt($ch, CURLOPT_URL, $apiUrl );
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
         $result = curl_exec($ch);
+        if(curl_errno($ch)){
+            $this->_logger->logApiError($apiUrl, $curl_error($ch));
+        }
 
         $response = [
             'http' => [
@@ -259,7 +265,7 @@ class RequestHandler
             return;
         }
 
-        return $this->currency->formatTxt( $amount, ['display' => \Magento\Framework\Currency::NO_SYMBOL] );
+        return $this->_currency->formatTxt( $amount, ['display' => \Magento\Framework\Currency::NO_SYMBOL] );
     }
 
     protected function buildParamsAdditionalInfo( $payment )
