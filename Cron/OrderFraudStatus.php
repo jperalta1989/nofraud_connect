@@ -38,7 +38,7 @@ class OrderFraudStatus
             ->setOrder('status', 'desc');
 
         $select = $magentoOrders->getSelect()
-            ->where('status = \''.$this->_configHelper->getOrderStatusReview.'\'');
+            ->where('status = \''.$this->_configHelper->getOrderStatusReview().'\'');
 
         return $magentoOrders;
     }
@@ -53,7 +53,7 @@ class OrderFraudStatus
 
             switch ($noFraudOrderStatus['decision']) {
                 case 'pass':
-                    if (isset($this->_configHelper->getPassOrderStatus())) {
+                    if (isset($this->_configHelper->getOrderStatusPass())) {
                         $order->setStatus($this->_configHelper->getOrderStatusPass());
                         $order->save($order->getEntityId());
                     }
@@ -64,7 +64,6 @@ class OrderFraudStatus
                 case 'review':
                     break;
             }
-            break;
         }
     }
 
