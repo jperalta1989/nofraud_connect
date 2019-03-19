@@ -22,8 +22,8 @@ class RequestHandler
         \Magento\Directory\Model\Currency $currency,
         \NoFraud\Connect\Logger\Logger $logger
     ) {
-        $this->_currency = $currency;
-        $this->_logger = $logger;
+        $this->currency = $currency;
+        $this->logger = $logger;
     }
 
     /**
@@ -68,7 +68,7 @@ class RequestHandler
 
         $result = curl_exec($ch);
         if(curl_errno($ch)){
-            $this->_logger->logApiError($apiUrl, $curl_error($ch));
+            $this->logger->logApiError($apiUrl, $curl_error($ch));
         }
 
         $response = [
@@ -265,7 +265,7 @@ class RequestHandler
             return;
         }
 
-        return $this->_currency->formatTxt( $amount, ['display' => \Magento\Framework\Currency::NO_SYMBOL] );
+        return $this->currency->formatTxt( $amount, ['display' => \Magento\Framework\Currency::NO_SYMBOL] );
     }
 
     protected function buildParamsAdditionalInfo( $payment )

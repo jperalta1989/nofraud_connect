@@ -17,10 +17,10 @@ class OrderFraudStatus
         \NoFraud\Connect\Helper\Config $configHelper,
         \NoFraud\Connect\Helper\Data $dataHelper
     ) {
-        $this->_orders = $orders;
-        $this->_requestHandler = $requestHandler;
-        $this->_configHelper = $configHelper;
-        $this->_dataHelper = $dataHelper;
+        $this->orders = $orders;
+        $this->requestHandler = $requestHandler;
+        $this->configHelper = $configHelper;
+        $this->dataHelper = $dataHelper;
     }
 
     public function execute() 
@@ -31,14 +31,14 @@ class OrderFraudStatus
 
     public function readMagentoOrders()
     {
-        $magentoOrders = $this->_orders->create()
+        $magentoOrders = $this->orders->create()
             ->addFieldToSelect('status')
             ->addFieldToSelect('increment_id')
             ->addFieldToSelect('entity_id')
             ->setOrder('status', 'desc');
 
         $select = $magentoOrders->getSelect()
-            ->where('status = \''.$this->_configHelper->getOrderStatusReview().'\'');
+            ->where('status = \''.$this->configHelper->getOrderStatusReview().'\'');
 
         return $magentoOrders;
     }
@@ -48,18 +48,18 @@ class OrderFraudStatus
         $apiUrl = $this->buildApiUrl();
         foreach ($magentoOrders as $order) {
             $orderSpecificApiUrl = $apiUrl.'/'.$order['increment_id'];
-            $response = $this->_requestHandler->send(null,$orderSpecificApiUrl,self::REQUEST_TYPE);
+            $response = $this->requestHandler->send(null,$orderSpecificApiUrl,self::REQUEST_TYPE);
             $noFraudOrderStatus = $response['http']['response']['body'];
 
             switch ($noFraudOrderStatus['decision']) {
                 case 'pass':
-                    if (isset($this->_configHelper->getOrderStatusPass())) {
-                        $order->setStatus($this->_configHelper->getOrderStatusPass());
+                    if (isset($this->configHelper->getOrderStatusPass())) {
+                        $order->setStatus($this->configHelper->getOrderStatusPass());
                         $order->save($order->getEntityId());
                     }
                     break;
                 case 'fail':
-                    $this->_dataHelper->handleAutoCancel($noFraudOrderStatus,$order);
+                    $this->dataHelper->handleAutoCancel($noFraudOrderStatus,$order);
                     break;
                 case 'review':
                     break;
@@ -69,12 +69,12 @@ class OrderFraudStatus
 
     public function buildApiUrl()
     {
-        $apiBaseUrl = $this->_configHelper->getSandboxMode() ?
+        $apiBaseUrl = $this->configHelper->getSandboxMode() ?
             $this->requestHandler::SANDBOX_URL          :
             $this->requestHandler::PRODUCTION_URL       ;
 
         $orderRequest = self::ORDER_REQUEST;
-        $token = $this->_configHelper->getApiToken();
+        $token = $this->configHelper->getApiToken();
 
         $apiUrl = $apiBaseUrl.$orderRequest.'/'.$token;
 
