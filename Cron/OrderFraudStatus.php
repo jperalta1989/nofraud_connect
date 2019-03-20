@@ -54,7 +54,7 @@ class OrderFraudStatus
             $response = $this->requestHandler->send(null,$orderSpecificApiUrl,self::REQUEST_TYPE);
             $noFraudOrderStatus = $response['http']['response']['body'];
 
-            $this->status->updateMagentoOrderStatusFromNoFraudResult($noFraudOrderStatus['decision'], $order);
+            $this->status->updateMagentoOrderStatusFromNoFraudResult($noFraudOrderStatus, $order);
         }
     }
 }
