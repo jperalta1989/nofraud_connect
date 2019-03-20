@@ -10,20 +10,20 @@ class OrderFraudStatus
     private $orders;
     private $configHelper;
     private $apiUrl;
-    private $status;
+    private $orderProcessor;
 
     public function __construct(
         \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $orders,
         \NoFraud\Connect\Api\RequestHandler $requestHandler,
         \NoFraud\Connect\Helper\Config $configHelper,
         \NoFraud\Connect\Api $apiUrl,
-        \NoFraud\Connect\Model\Status $status
+        \NoFraud\Connect\Order\Processor $orderProcessor
     ) {
         $this->orders = $orders;
         $this->requestHandler = $requestHandler;
         $this->configHelper = $configHelper;
         $this->apiUrl = $apiUrl;
-        $this->status = $status;
+        $this->orderProcessor = $orderProcessor;
     }
 
     public function execute() 
@@ -54,7 +54,7 @@ class OrderFraudStatus
             $response = $this->requestHandler->send(null,$orderSpecificApiUrl,self::REQUEST_TYPE);
             $noFraudOrderStatus = $response['http']['response']['body'];
 
-            $this->status->updateMagentoOrderStatusFromNoFraudResult($noFraudOrderStatus, $order);
+            $this->orderProcessor->updateMagentoOrderStatusFromNoFraudResult($noFraudOrderStatus, $order);
         }
     }
 }

@@ -1,8 +1,8 @@
 <?php
 
-namespace NoFraud\Connect\Model;
+namespace NoFraud\Connect\Order;
 
-class Status
+class Processor
 {
     private $logger;
     private $configHelper;
