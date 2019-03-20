@@ -12,12 +12,14 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         \NoFraud\Connect\Api\RequestHandler $requestHandler,
         \NoFraud\Connect\Api\ResponseHandler $responseHandler,
         \NoFraud\Connect\Logger\Logger $logger,
+        \NoFraud\Connect\Api $apiUrl,
         \Magento\Sales\Model\ResourceModel\Order\Status\CollectionFactory $orderStatusCollection
     ) {
         $this->configHelper = $configHelper;
         $this->requestHandler = $requestHandler;
         $this->responseHandler = $responseHandler;
         $this->logger = $logger;
+        $this->apiUrl = $apiUrl;
         $this->orderStatusCollection = $orderStatusCollection;
     }
 
@@ -75,9 +77,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
 
         // Use the NoFraud Sandbox URL if Sandbox Mode is enabled in Admin Config:
         //
-        $apiUrl = $this->configHelper->getSandboxMode() ?
-            $this->requestHandler::SANDBOX_URL          :
-            $this->requestHandler::PRODUCTION_URL       ;
+        $apiUrl = $this->apiUrl->whichEnvironmentUrl();
 
         // Build the NoFraud API request JSON from the Payment and Order objects:
         //

@@ -4,9 +4,6 @@ namespace NoFraud\Connect\Api;
  
 class RequestHandler
 {
-    const PRODUCTION_URL = 'https://api.nofraud.com/';
-    const SANDBOX_URL    = 'https://apitest.nofraud.com/';
-
     const DEFAULT_AVS_CODE = 'U';
     const DEFAULT_CVV_CODE = 'U';
 

@@ -8,19 +8,22 @@ class OrderFraudStatus
     const REQUEST_TYPE  = 'GET';
 
     private $orders;
-    private $dataHelper;
     private $configHelper;
+    private $apiUrl;
+    private $status;
 
     public function __construct(
         \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $orders,
         \NoFraud\Connect\Api\RequestHandler $requestHandler,
         \NoFraud\Connect\Helper\Config $configHelper,
-        \NoFraud\Connect\Helper\Data $dataHelper
+        \NoFraud\Connect\Api $apiUrl,
+        \NoFraud\Connect\Model\Status $status
     ) {
         $this->orders = $orders;
         $this->requestHandler = $requestHandler;
         $this->configHelper = $configHelper;
-        $this->dataHelper = $dataHelper;
+        $this->apiUrl = $apiUrl;
+        $this->status = $status;
     }
 
     public function execute() 
@@ -45,39 +48,13 @@ class OrderFraudStatus
 
     public function askNoFraudForOrderStatusAndUpdateMagentoOrder($magentoOrders) 
     {
-        $apiUrl = $this->buildApiUrl();
+        $apiUrl = $this->apiUrl->buildOrderApiUrl(self::ORDER_REQUEST,$this->configHelper->getApiToken());
         foreach ($magentoOrders as $order) {
             $orderSpecificApiUrl = $apiUrl.'/'.$order['increment_id'];
             $response = $this->requestHandler->send(null,$orderSpecificApiUrl,self::REQUEST_TYPE);
             $noFraudOrderStatus = $response['http']['response']['body'];
 
-            switch ($noFraudOrderStatus['decision']) {
-                case 'pass':
-                    if (isset($this->configHelper->getOrderStatusPass())) {
-                        $order->setStatus($this->configHelper->getOrderStatusPass());
-                        $order->save($order->getEntityId());
-                    }
-                    break;
-                case 'fail':
-                    $this->dataHelper->handleAutoCancel($noFraudOrderStatus,$order);
-                    break;
-                case 'review':
-                    break;
-            }
+            $this->status->updateMagentoOrderStatusFromNoFraudResult($noFraudOrderStatus['decision'], $order);
         }
-    }
-
-    public function buildApiUrl()
-    {
-        $apiBaseUrl = $this->configHelper->getSandboxMode() ?
-            $this->requestHandler::SANDBOX_URL          :
-            $this->requestHandler::PRODUCTION_URL       ;
-
-        $orderRequest = self::ORDER_REQUEST;
-        $token = $this->configHelper->getApiToken();
-
-        $apiUrl = $apiBaseUrl.$orderRequest.'/'.$token;
-
-        return $apiUrl;
     }
 }
