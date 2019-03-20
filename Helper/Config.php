@@ -95,14 +95,14 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         return $this->scopeConfig->getValue(self::ORDER_STATUSES_REVIEW);
     }
 
-    public function getCustomStatusConfig( $key )
+    public function getCustomStatusConfig($statusName)
     {
-        if ( !in_array($key, $this->orderStatusesKeys) ){
+        if ( !in_array($statusName, $this->orderStatusesKeys) ){
             return;
         }
 
-        $path = self::ORDER_STATUSES . '/' . $key; 
+        $path = self::ORDER_STATUSES . '/' . $statusName; 
 
-        return $this->scopeConfig->getValue( $path );
+        return $this->scopeConfig->getValue($statusName);
     }
 }
