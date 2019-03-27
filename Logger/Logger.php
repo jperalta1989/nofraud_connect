@@ -3,7 +3,7 @@ namespace NoFraud\Connect\Logger;
 
 class Logger extends \Monolog\Logger
 {
-    public function logTransactionResults( $order, $payment, $resultMap )
+    public function logTransactionResults($order, $payment, $resultMap)
     {
         $orderLog['id'] = $order->getIncrementID();
 
@@ -15,20 +15,22 @@ class Logger extends \Monolog\Logger
             'api_result' => $resultMap,
         ];
 
-        $this->info( json_encode($info) );
+        $this->info(json_encode($info));
     }
 
-    public function logFailure( $order, $exception )
+    public function logFailure($order, $exception)
     {
         $orderId = $order->getIncrementID();
         $this->critical( "Encountered an exception while processing Order {$orderId}: \n" . (string) $exception );
     }
 
-    public function logApiError( $params = null, $apiUrl, $curlError )
+    public function logApiError($params = null, $apiUrl, $curlError, $responseCode)
     {
         $this->critical( "Encountered an exception while sending an API request. Here is the API url: {$apiUrl}" );
         $this->critical( "Encountered an exception while sending an API request. Here are the parameters: " );
         $this->critical(print_r($params,true));
+        $this->critical( "Encountered an exception while sending an API request. Here is the response code: " );
+        $this->critical(print_r($responseCode,true));
         $this->critical( "Encountered an exception while sending an API request. Here is the exception: " );
         $this->critical(print_r($curlError,true));
     }

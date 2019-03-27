@@ -64,15 +64,17 @@ class RequestHandler
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
         $result = curl_exec($ch);
+        $responseCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+
         if(curl_errno($ch)){
-            $this->logger->logApiError($apiUrl, $curl_error($ch));
+            $this->logger->logApiError($apiUrl, $curl_error($ch),$responseCode);
         }
 
         $response = [
             'http' => [
                 'response' => [
                     'body' => json_decode($result, true),
-                    'code' => curl_getinfo($ch, CURLINFO_RESPONSE_CODE),
+                    'code' => $responseCode,
                     'time' => curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME),
                 ],
                 'client' => [

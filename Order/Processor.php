@@ -3,6 +3,7 @@
 namespace NoFraud\Connect\Order;
 
 use Magento\Sales\Model\Order;
+use Magento\Framework\Serialize\Serializer\Json;
 
 class Processor
 {
@@ -13,6 +14,7 @@ class Processor
     private $invoiceService;
     private $creditmemoFactory;
     private $creditmemoService;
+    private $stateIndex = [];
 
     public function __construct(
         \NoFraud\Connect\Logger\Logger $logger,
@@ -74,14 +76,16 @@ class Processor
         }
     }
 
-    public function getCustomOrderStatus($responseBody)
+    public function getCustomOrderStatus($response)
     {
-        if ( isset($responseBody['decision']) ){
+        if ( isset($response['body']['decision']) ){
             $statusName = $responseBody['decision'];
         }
 
-        if ( isset($responseBody['Errors']) ){
-            $statusName = 'error';
+        if ( isset($response['code']) ){
+            if ($response['code'] > 299) {
+                $statusName = 'error';
+            }
         }
 
         if ( isset($statusName) ){
@@ -93,12 +97,13 @@ class Processor
     public function getStateFromStatus($state)
     {
         $statuses = $this->orderStatusCollection->create()->joinStates();
-        $stateIndex = [];
 
-        foreach ($statuses as $status) {
-            $stateIndex[$status->getStatus()] = $status->getState();
+        if (empty($this->stateIndex)) {
+            foreach ($statuses as $status) {
+                    $this->stateIndex[$status->getStatus()] = $status->getState();
+            }
         }
 
-        return $stateIndex[$state] ?? null;
+        return $this->stateIndex[$state] ?? null;
     }
 }

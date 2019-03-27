@@ -102,7 +102,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             // according to Admin Config preferences:
             //
             if (isset($resultMap['http']['response']['body'])){
-                $newStatus = $this->orderProcessor->getCustomOrderStatus($resultMap['http']['response']['body']);
+                $newStatus = $this->orderProcessor->getCustomOrderStatus($resultMap['http']['response']);
             }
 
             // Update state and status. Run function for holded status.
