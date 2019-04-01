@@ -8,7 +8,7 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     const ORDER_STATUSES = 'nofraud_connect/order_statuses';
 
     const ORDER_STATUSES_PASS = self::ORDER_STATUSES . '/pass';
-    const ORDER_STATUSES_PASS = self::ORDER_STATUSES . '/review';
+    const ORDER_STATUSES_REVIEW = self::ORDER_STATUSES . '/review';
     const GENERAL_ENABLED = self::GENERAL . '/enabled';
     const GENERAL_API_TOKEN = self::GENERAL . '/api_token';
     const GENERAL_SANDBOX_MODE = self::GENERAL . '/sandbox_enabled';
@@ -22,7 +22,6 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         'fail',
         'error',
     ];
-
 
     public function __construct(
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,

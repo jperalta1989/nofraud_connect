@@ -34,24 +34,23 @@ class Processor
         $this->configHelper = $configHelper;
     }
 
-    public function updateMagentoOrderStatusFromNoFraudResult($noFraudOrderStatus, $order) 
+    public function updateOrderStatusFromNoFraudResult($noFraudOrderStatus, $order) 
     {
         switch ($noFraudOrderStatus['decision']) {
             case 'pass':
-                if (isset($this->configHelper->getOrderStatusPass())) {
-                    $order->setstatus($this->confighelper->getorderstatuspass());
-                    $order->save($order->getentityid());
+                if ($this->configHelper->getOrderStatusPass()) {
+                    $order->setStatus($this->configHelper->getOrderStatusPass());
                 }
                 break;
             case 'fail':
-                $this->handleautocancel($noFraudOrderStatus,$order);
+                $this->handleAutoCancel($noFraudOrderStatus, $order);
                 break;
             case 'review':
                 break;
         }
     }
 
-    public function updateMagentoOrderStateFromNoFraudResult($noFraudOrderStatus, $order) 
+    public function updateOrderStateFromNoFraudResult($noFraudOrderStatus, $order) 
     {
         if (!empty($noFraudOrderStatus)){
             $newState = $this->getStateFromStatus($noFraudOrderStatus);
@@ -79,7 +78,7 @@ class Processor
     public function getCustomOrderStatus($response)
     {
         if ( isset($response['body']['decision']) ){
-            $statusName = $responseBody['decision'];
+            $statusName = $response['body']['decision'];
         }
 
         if ( isset($response['code']) ){

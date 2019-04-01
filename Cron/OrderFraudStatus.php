@@ -16,7 +16,7 @@ class OrderFraudStatus
         \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $orders,
         \NoFraud\Connect\Api\RequestHandler $requestHandler,
         \NoFraud\Connect\Helper\Config $configHelper,
-        \NoFraud\Connect\Api $apiUrl,
+        \NoFraud\Connect\Api\ApiUrl $apiUrl,
         \NoFraud\Connect\Order\Processor $orderProcessor
     ) {
         $this->orders = $orders;
@@ -28,33 +28,34 @@ class OrderFraudStatus
 
     public function execute() 
     {
-        $magentoOrders = $this->readMagentoOrders();
-        $this->askNoFraudForOrderStatusAndUpdateMagentoOrder($magentoOrders);
+        $orders = $this->readOrders();
+        $this->updateOrdersFromNoFraudApiResult($orders);
     }
 
-    public function readMagentoOrders()
+    public function readOrders()
     {
-        $magentoOrders = $this->orders->create()
+        $orders = $this->orders->create()
             ->addFieldToSelect('status')
             ->addFieldToSelect('increment_id')
             ->addFieldToSelect('entity_id')
             ->setOrder('status', 'desc');
 
-        $select = $magentoOrders->getSelect()
+        $select = $orders->getSelect()
             ->where('status = \''.$this->configHelper->getOrderStatusReview().'\'');
 
-        return $magentoOrders;
+        return $orders;
     }
 
-    public function askNoFraudForOrderStatusAndUpdateMagentoOrder($magentoOrders) 
+    public function updateOrdersFromNoFraudApiResult($orders) 
     {
         $apiUrl = $this->apiUrl->buildOrderApiUrl(self::ORDER_REQUEST,$this->configHelper->getApiToken());
-        foreach ($magentoOrders as $order) {
+        foreach ($orders as $order) {
             $orderSpecificApiUrl = $apiUrl.'/'.$order['increment_id'];
             $response = $this->requestHandler->send(null,$orderSpecificApiUrl,self::REQUEST_TYPE);
             $noFraudOrderStatus = $response['http']['response']['body'];
 
-            $this->orderProcessor->updateMagentoOrderStatusFromNoFraudResult($noFraudOrderStatus, $order);
+            $this->orderProcessor->updateOrderStatusFromNoFraudResult($noFraudOrderStatus, $order);
+	    $order->save();
         }
     }
 }

@@ -24,15 +24,13 @@ class ApiUrl
     public function buildOrderApiUrl($orderInfoRequest, $apiToken)
     {
         $apiBaseUrl = $this->whichEnvironmentUrl();
-        $apiUrl = $apiBaseUrl.$orderRequest.'/'.$token;
+        $apiUrl = $apiBaseUrl . $orderRequest . '/' . $token;
 
         return $apiUrl;
     }
 
     public function whichEnvironmentUrl()
     {
-        $this->configHelper->getSandboxMode() ?
-            return self::SANDBOX_URL          :
-            return self::PRODUCTION_URL       ;
+        return $this->configHelper->getSandboxMode() ? self::SANDBOX_URL : self::PRODUCTION_URL;
     }
 }

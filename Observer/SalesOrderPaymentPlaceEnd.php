@@ -13,7 +13,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         \NoFraud\Connect\Api\RequestHandler $requestHandler,
         \NoFraud\Connect\Api\ResponseHandler $responseHandler,
         \NoFraud\Connect\Logger\Logger $logger,
-        \NoFraud\Connect\Api $apiUrl,
+        \NoFraud\Connect\Api\ApiUrl $apiUrl,
         \NoFraud\Connect\Order\Processor $orderProcessor,
         \Magento\Sales\Model\ResourceModel\Order\Status\CollectionFactory $orderStatusCollection,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
@@ -112,7 +112,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             }
 
             // Update state and status. Run function for holded status.
-            $this->updateMagentoOrderStateFromNoFraudResult($newStatus, $order);
+            $this->orderProcessor->updateOrderStateFromNoFraudResult($newStatus, $order);
 
             // Order has been screened
             $order->setNofraudScreened(true);
@@ -122,7 +122,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             $order->save();
 
             if ( $this->configHelper->getAutoCancel() && isset( $resultMap['http']['response']['body'] ) ) {
-                $this->handleAutoCancel( $resultMap['http']['response']['body'], $order );
+                $this->orderProcessor->handleAutoCancel( $resultMap['http']['response']['body'], $order );
             }
 
         } catch ( \Exception $exception ) {
@@ -157,17 +157,5 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         }
 
         return $stateIndex[$state] ?? null;
-    }
-
-    protected function handleAutoCancel( $responseBody, $order )
-    {
-        if ( isset($responseBody['decision']) && $responseBody['decision'] == 'fail' && $order->canInvoice() ){
-            $invoice = $this->invoiceService->prepareInvoice($order);
-            $invoice->register();
-            $invoice->save();
-            $creditmemo = $this->creditmemoFactory->createByOrder($order);
-            $creditmemo->setInvoice($invoice);
-            $this->creditmemoService->refund($creditmemo);
-        }
     }
 }
