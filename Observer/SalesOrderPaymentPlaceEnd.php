@@ -4,6 +4,9 @@ namespace NoFraud\Connect\Observer;
 
 class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInterface
 {
+    protected $invoiceService;
+    protected $creditmemoFactory;
+    protected $creditmemoService;
 
     public function __construct(
         \NoFraud\Connect\Helper\Config $configHelper,
@@ -12,7 +15,10 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         \NoFraud\Connect\Logger\Logger $logger,
         \NoFraud\Connect\Api $apiUrl,
         \NoFraud\Connect\Order\Processor $orderProcessor,
-        \Magento\Sales\Model\ResourceModel\Order\Status\CollectionFactory $orderStatusCollection
+        \Magento\Sales\Model\ResourceModel\Order\Status\CollectionFactory $orderStatusCollection,
+        \Magento\Sales\Model\Service\InvoiceService $invoiceService,
+        \Magento\Sales\Model\Order\CreditmemoFactory $creditmemoFactory,
+        \Magento\Sales\Model\Service\CreditmemoService $creditmemoService
     ) {
         $this->configHelper = $configHelper;
         $this->requestHandler = $requestHandler;
@@ -21,6 +27,9 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         $this->apiUrl = $apiUrl;
         $this->orderProcessor = $orderProcessor;
         $this->orderStatusCollection = $orderStatusCollection;
+        $this->invoiceService = $invoiceService;
+        $this->creditmemoFactory = $creditmemoFactory;
+        $this->creditmemoService = $creditmemoService;
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
@@ -35,14 +44,11 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         //
         $payment = $observer->getEvent()->getPayment();
 
-        // PHASE2: This line should be implemented in a later version:
         // If the Payment method is blacklisted in the Admin Config, then do nothing.
         //
-        /*
         if ( $this->configHelper->paymentMethodIsIgnored($payment->getMethod()) ) {
             return;
         }
-        */
 
         // get \Magento\Sales\Model\Order
         //
@@ -108,12 +114,60 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             // Update state and status. Run function for holded status.
             $this->updateMagentoOrderStateFromNoFraudResult($newStatus, $order);
 
+            // Order has been screened
+            $order->setNofraudScreened(true);
+
             // Finally, save the Order:
             //
             $order->save();
 
-        } catch (\Exception $exception) {
+            if ( $this->configHelper->getAutoCancel() && isset( $resultMap['http']['response']['body'] ) ) {
+                $this->handleAutoCancel( $resultMap['http']['response']['body'], $order );
+            }
+
+        } catch ( \Exception $exception ) {
             $this->logger->logFailure($order, $exception); //LOGGING
+        }
+
+    }
+
+    protected function orderStatusFromConfig( $responseBody )
+    {
+        if ( isset($responseBody['decision']) ){
+            $key = $responseBody['decision'];
+        }
+
+        if ( isset($responseBody['Errors']) ){
+            $key = 'error';
+        }
+
+        if ( isset($key) ){
+            $statusCode = $this->configHelper->getCustomStatusConfig($key);
+            return $statusCode;
+        }
+    }
+
+    protected function stateFromStatus( $state )
+    {
+        $statuses = $this->orderStatusCollection->create()->joinStates();
+        $stateIndex = [];
+
+        foreach ($statuses as $status) {
+            $stateIndex[$status->getStatus()] = $status->getState();
+        }
+
+        return $stateIndex[$state] ?? null;
+    }
+
+    protected function handleAutoCancel( $responseBody, $order )
+    {
+        if ( isset($responseBody['decision']) && $responseBody['decision'] == 'fail' && $order->canInvoice() ){
+            $invoice = $this->invoiceService->prepareInvoice($order);
+            $invoice->register();
+            $invoice->save();
+            $creditmemo = $this->creditmemoFactory->createByOrder($order);
+            $creditmemo->setInvoice($invoice);
+            $this->creditmemoService->refund($creditmemo);
         }
     }
 }

@@ -24,4 +24,11 @@
         </arguments>
     </type>
 
+    <virtualType name="Magento\Sales\Model\ResourceModel\Order\Grid" type="Magento\Sales\Model\ResourceModel\Grid">
+        <arguments>
+            <argument name="columns">
+                <item name="nofraud_screened" xsi:type="string">sales_order.nofraud_screened</item>
+            </argument>
+        </arguments>
+    </virtualType>
 </config>
