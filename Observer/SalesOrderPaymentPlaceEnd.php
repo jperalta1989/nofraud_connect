@@ -112,7 +112,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             }
 
             // Update state and status. Run function for holded status.
-            $this->orderProcessor->updateOrderStateFromNoFraudResult($newStatus, $order);
+            $this->orderProcessor->updateOrderStatusFromNoFraudResult($newStatus, $order);
 
             // Order has been screened
             $order->setNofraudScreened(true);
@@ -121,41 +121,13 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             //
             $order->save();
 
-            if ( $this->configHelper->getAutoCancel() && isset( $resultMap['http']['response']['body'] ) ) {
-                $this->orderProcessor->handleAutoCancel( $resultMap['http']['response']['body'], $order );
+            if ($this->configHelper->getAutoCancel()) {
+                $this->orderProcessor->handleAutoCancel($order);
             }
 
         } catch ( \Exception $exception ) {
             $this->logger->logFailure($order, $exception); //LOGGING
         }
 
-    }
-
-    protected function orderStatusFromConfig( $responseBody )
-    {
-        if ( isset($responseBody['decision']) ){
-            $key = $responseBody['decision'];
-        }
-
-        if ( isset($responseBody['Errors']) ){
-            $key = 'error';
-        }
-
-        if ( isset($key) ){
-            $statusCode = $this->configHelper->getCustomStatusConfig($key);
-            return $statusCode;
-        }
-    }
-
-    protected function stateFromStatus( $state )
-    {
-        $statuses = $this->orderStatusCollection->create()->joinStates();
-        $stateIndex = [];
-
-        foreach ($statuses as $status) {
-            $stateIndex[$status->getStatus()] = $status->getState();
-        }
-
-        return $stateIndex[$state] ?? null;
     }
 }

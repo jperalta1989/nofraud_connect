@@ -24,7 +24,7 @@ class ApiUrl
     public function buildOrderApiUrl($orderInfoRequest, $apiToken)
     {
         $apiBaseUrl = $this->whichEnvironmentUrl();
-        $apiUrl = $apiBaseUrl . $orderRequest . '/' . $token;
+        $apiUrl = $apiBaseUrl . $orderInfoRequest . '/' . $apiToken;
 
         return $apiUrl;
     }

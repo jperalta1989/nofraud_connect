@@ -34,47 +34,6 @@ class Processor
         $this->configHelper = $configHelper;
     }
 
-    public function updateOrderStatusFromNoFraudResult($noFraudOrderStatus, $order) 
-    {
-        switch ($noFraudOrderStatus['decision']) {
-            case 'pass':
-                if ($this->configHelper->getOrderStatusPass()) {
-                    $order->setStatus($this->configHelper->getOrderStatusPass());
-                }
-                break;
-            case 'fail':
-                $this->handleAutoCancel($noFraudOrderStatus, $order);
-                break;
-            case 'review':
-                break;
-        }
-    }
-
-    public function updateOrderStateFromNoFraudResult($noFraudOrderStatus, $order) 
-    {
-        if (!empty($noFraudOrderStatus)){
-            $newState = $this->getStateFromStatus($noFraudOrderStatus);
-
-            if ($newStatus == Order::STATE_HOLDED) {
-                $order->hold();
-            } else if ($newState) {
-                $order->setStatus($noFraudOrderStatus)->setState($newState);
-            }
-        }
-    }
-
-    public function handleAutoCancel($responseBody, $order)
-    {
-        if ( isset($responseBody['decision']) && $responseBody['decision'] == 'fail' && $order->canInvoice() ){
-            $invoice = $this->invoiceService->prepareInvoice($order);
-            $invoice->register();
-            $invoice->save();
-            $creditmemo = $this->creditmemoFactory->createByOrder($order);
-            $creditmemo->setInvoice($invoice);
-            $this->creditmemoService->refund($creditmemo);
-        }
-    }
-
     public function getCustomOrderStatus($response)
     {
         if ( isset($response['body']['decision']) ){
@@ -88,8 +47,20 @@ class Processor
         }
 
         if ( isset($statusName) ){
-            $customOrderStatus = $this->configHelper->getCustomStatusConfig($statusName);
-            return $customOrderStatus;
+            return $this->configHelper->getCustomStatusConfig($statusName);
+        }
+    }
+
+    public function updateOrderStatusFromNoFraudResult($noFraudOrderStatus, $order) 
+    {
+        if (!empty($noFraudOrderStatus)){
+            $newState = $this->getStateFromStatus($noFraudOrderStatus);
+
+            if ($newState == Order::STATE_HOLDED) {
+                $order->hold();
+            } else if ($newState) {
+                $order->setStatus($noFraudOrderStatus)->setState($newState);
+            }
         }
     }
 
@@ -99,10 +70,22 @@ class Processor
 
         if (empty($this->stateIndex)) {
             foreach ($statuses as $status) {
-                    $this->stateIndex[$status->getStatus()] = $status->getState();
+                $this->stateIndex[$status->getStatus()] = $status->getState();
             }
         }
 
         return $this->stateIndex[$state] ?? null;
+    }
+
+    public function handleAutoCancel($order)
+    {
+        if ($order->canInvoice()){
+            $invoice = $this->invoiceService->prepareInvoice($order);
+            $invoice->register();
+            $invoice->save();
+            $creditmemo = $this->creditmemoFactory->createByOrder($order);
+            $creditmemo->setInvoice($invoice);
+            $this->creditmemoService->refund($creditmemo);
+        }
     }
 }

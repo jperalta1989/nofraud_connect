@@ -116,6 +116,6 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
 
         $path = self::ORDER_STATUSES . '/' . $statusName; 
 
-        return $this->scopeConfig->getValue($statusName);
+        return $this->scopeConfig->getValue($path);
     }
 }

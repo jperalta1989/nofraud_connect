@@ -52,10 +52,17 @@ class OrderFraudStatus
         foreach ($orders as $order) {
             $orderSpecificApiUrl = $apiUrl.'/'.$order['increment_id'];
             $response = $this->requestHandler->send(null,$orderSpecificApiUrl,self::REQUEST_TYPE);
-            $noFraudOrderStatus = $response['http']['response']['body'];
 
-            $this->orderProcessor->updateOrderStatusFromNoFraudResult($noFraudOrderStatus, $order);
-	    $order->save();
+            if (isset($resultMap['http']['response']['body'])){
+                $newStatus = $this->orderProcessor->getCustomOrderStatus($resultMap['http']['response']);
+                $this->orderProcessor->updateOrderStatusFromNoFraudResult($newStatus, $order);
+
+	        $order->save();
+
+                if ($this->configHelper->getAutoCancel()) {
+                    $this->orderProcessor->handleAutoCancel($order);
+                }
+            }
         }
     }
 }
