@@ -5,19 +5,23 @@ namespace NoFraud\Connect\Helper;
 class Config extends \Magento\Framework\App\Helper\AbstractHelper
 {
     const GENERAL = 'nofraud_connect/general';
+    const ORDER_STATUSES = 'nofraud_connect/order_statuses';
+
+    const ORDER_STATUSES_PASS = self::ORDER_STATUSES . '/pass';
+    const ORDER_STATUSES_REVIEW = self::ORDER_STATUSES . '/review';
     const GENERAL_ENABLED = self::GENERAL . '/enabled';
     const GENERAL_API_TOKEN = self::GENERAL . '/api_token';
     const GENERAL_SANDBOX_MODE = self::GENERAL . '/sandbox_enabled';
     const GENERAL_SCREENED_ORDER_STATUS = self::GENERAL . '/screened_order_status';
+    const GENERAL_SCREENED_PAYMENT_METHODS = self::GENERAL . '/screened_payment_methods';
+    const GENERAL_AUTO_CANCEL = self::GENERAL . '/auto_cancel';
 
-    const ORDER_STATUSES = 'nofraud_connect/order_statuses';
     protected $orderStatusesKeys = [
         'pass',
         'review',
         'fail',
         'error',
     ];
-
 
     public function __construct(
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
@@ -56,6 +60,19 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         return false;
     }
 
+    public function paymentMethodIsIgnored($method)
+    {
+        $methods = $this->scopeConfig->getValue(self::GENERAL_SCREENED_PAYMENT_METHODS);
+        if (empty($methods)) {
+            return false;
+        }
+        $methods = explode(',',$methods);
+        if (in_array($method,$methods)) {
+            return false;
+        }
+        return true;
+    }
+
     public function getApiToken()
     {
         return $this->scopeConfig->getValue(self::GENERAL_API_TOKEN);
@@ -76,14 +93,29 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         return $this->scopeConfig->getValue(self::GENERAL_SCREENED_ORDER_STATUS);
     }
 
-    public function getCustomStatusConfig( $key )
+    public function getAutoCancel()
     {
-        if ( !in_array($key, $this->orderStatusesKeys) ){
+        return $this->scopeConfig->getValue(self::GENERAL_AUTO_CANCEL);
+    }
+
+    public function getOrderStatusPass()
+    {
+        return $this->scopeConfig->getValue(self::ORDER_STATUSES_PASS);
+    }
+
+    public function getOrderStatusReview()
+    {
+        return $this->scopeConfig->getValue(self::ORDER_STATUSES_REVIEW);
+    }
+
+    public function getCustomStatusConfig($statusName)
+    {
+        if ( !in_array($statusName, $this->orderStatusesKeys) ){
             return;
         }
 
-        $path = self::ORDER_STATUSES . '/' . $key; 
+        $path = self::ORDER_STATUSES . '/' . $statusName; 
 
-        return $this->scopeConfig->getValue( $path );
+        return $this->scopeConfig->getValue($path);
     }
 }

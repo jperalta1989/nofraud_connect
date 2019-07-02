@@ -33,6 +33,19 @@
                     <comment>If selected, only orders with this status will be screened by NoFraud.</comment>
                     <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
                 </field>
+                <field id="screened_payment_methods" translate="label" type="multiselect"
+                    sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Screened Payment Methods</label>
+                    <source_model>NoFraud\Connect\Model\Config\Source\PaymentMethod</source_model>
+                    <can_be_empty>1</can_be_empty>
+                    <comment>Screens all payment methods if none selected.</comment>
+                </field>
+                <field id="auto_cancel" translate="label" type="select"
+                    sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Auto-cancel</label>
+                    <comment>While enabled, all failed orders will automatically be cancelled.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
             </group>
             <group id="order_statuses" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Order Statuses</label>

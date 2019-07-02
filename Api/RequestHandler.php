@@ -4,9 +4,6 @@ namespace NoFraud\Connect\Api;
  
 class RequestHandler
 {
-    const PRODUCTION_URL = 'https://api.nofraud.com/';
-    const SANDBOX_URL    = 'https://apitest.nofraud.com/';
-
     const DEFAULT_AVS_CODE = 'U';
     const DEFAULT_CVV_CODE = 'U';
 
@@ -51,25 +48,33 @@ class RequestHandler
      * @param array  $params | NoFraud request object parameters
      * @param string $apiUrl | The URL to send to
      */
-    public function send( $params, $apiUrl )
+    public function send( $params, $apiUrl, $requestType = 'POST')
     {
         $ch = curl_init();
 
-        $body = json_encode($params);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($body)));
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-        curl_setopt($ch, CURLOPT_URL, $apiUrl );
+        if (!strcasecmp($requestType,'post')) {
+            $body = json_encode($params);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($body)));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        }
+
         curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
+        curl_setopt($ch, CURLOPT_URL, $apiUrl );
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
         $result = curl_exec($ch);
+        $responseCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+
+        if(curl_errno($ch)){
+            $this->logger->logApiError($apiUrl, $curl_error($ch),$responseCode);
+        }
 
         $response = [
             'http' => [
                 'response' => [
                     'body' => json_decode($result, true),
-                    'code' => curl_getinfo($ch, CURLINFO_RESPONSE_CODE),
+                    'code' => $responseCode,
                     'time' => curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME),
                 ],
                 'client' => [

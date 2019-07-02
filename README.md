@@ -668,9 +668,7 @@ However, there are now two places in the code with this full conditional stateme
 
 // Use the NoFraud Sandbox URL if Sandbox Mode is enabled in Admin Config:
 //
-$apiUrl = $this->configHelper->getSandboxMode() ?
-    $this->requestHandler::SANDBOX_URL          :
-    $this->requestHandler::PRODUCTION_URL       ;
+$apiUrl = $this->apiUrl->whichEnvironmentUrl();
 ```
 
 I've noticed other modules have their API urls (both production and test) configurable from the Admin panel.
