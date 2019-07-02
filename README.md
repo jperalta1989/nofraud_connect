@@ -38,7 +38,7 @@ Integrates NoFraud's post-payment-gateway API functionality into Magento 2.
 Just copy to the appropriate folder and run `php magento setup:upgrade`.
 
 ```
-git clone git@bitbucket.org:razoyo/mage2-module-nofraud.git
+git clone git@github.com:Nofraud/nofraud_connect.git
 cp -r mage2-module-nofraud/app/ ~/current
 php ~/current/bin/magento setup:upgrade
 ```
