@@ -245,6 +245,10 @@ class RequestHandler
         $lineItemsParams = [];
 
         foreach ( $orderItems as $item ){
+            if ($item->getParentItem()) {
+                continue;
+            }
+
             $lineItem = [];
 
             $lineItem['sku']      = $item->getSku();
