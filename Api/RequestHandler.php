@@ -151,6 +151,7 @@ class RequestHandler
         $paymentParams = [];
 
         $paymentParams['creditCard'] = $cc;
+        $paymentParams['method'] = str_replace('_', ' ', $payment->getMethod());
 
         return $paymentParams;
     }
