@@ -35,12 +35,23 @@ Integrates NoFraud's post-payment-gateway API functionality into Magento 2.
 ### Installation
 ----------------
 
-Just copy to the appropriate folder and run `php magento setup:upgrade`.
+Just copy to the vendor folder and run `php magento setup:upgrade`.
 
 ```
-git clone git@bitbucket.org:razoyo/mage2-module-nofraud.git
+git clone git@github.com:Nofraud/nofraud_connect.git
 cp -r mage2-module-nofraud/app/ ~/current
 php ~/current/bin/magento setup:upgrade
+```
+
+From the COMMAND LINE using Composer:
+```
+1. Update composer to require the "nofraud/connect" package with the command: $ composer require nofraud/connect dev-master
+
+2. To enable the module, run the command: $ bin/magento module:enable NoFraud_Connect
+
+3. Then run setup:upgrade to install the necessary updates, with the command: $ bin/magento setup:upgrade
+
+4. If a production environment - re deploy the static content and run the di compiler
 ```
 
 ### Configuration

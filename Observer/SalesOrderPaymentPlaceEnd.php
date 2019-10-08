@@ -60,6 +60,10 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             return;
         }
 
+        // Update Payment with card values if payment method has stripped them
+        //
+        $payment = $this->_getPaymentDetailsFromMethod($payment);
+
         // If the payment has NOT been processed by a payment processor, AND
         // is NOT an offline payment method, then do nothing.
         //
@@ -129,5 +133,58 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
             $this->logger->logFailure($order, $exception); //LOGGING
         }
 
+    }
+  
+    private function _getPaymentDetailsFromMethod($payment)
+    {
+        $method = $payment->getMethod();
+
+        if (strpos($method, "stripe_") === 0) {
+            $payment = $this->_getPaymentDetailsFromStripe($payment);
+        }
+
+        return $payment;
+    }
+
+    private function _getPaymentDetailsFromStripe($payment)
+    {
+        if (empty($payment))
+            return $payment;
+
+        $token = $payment->getAdditionalInformation('token');
+
+        if (empty($token))
+            $token = $payment->getAdditionalInformation('stripejs_token');
+
+        if (empty($token))
+            $token = $payment->getAdditionalInformation('source_id');
+
+        if (empty($token))
+            return $payment;
+
+        try
+        {
+            // Used by card payments
+            if (strpos($token, "pm_") === 0)
+                $object = \Stripe\PaymentMethod::retrieve($token);
+            else
+                return $payment;
+
+            if (empty($object->customer))
+                return $payment;
+        }
+        catch (\Exception $e)
+        {
+            return $payment;
+        }
+
+        $cardData = $object->getLastResponse()->json['card'];
+
+        $payment->setCcType($cardData['brand']);
+        $payment->setCcExpMonth($cardData['exp_month']);
+        $payment->setCcExpYear($cardData['exp_year']);
+        $payment->setCcLast4($cardData['last4']);
+
+        return $payment;
     }
 }

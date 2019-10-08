@@ -151,6 +151,7 @@ class RequestHandler
         $paymentParams = [];
 
         $paymentParams['creditCard'] = $cc;
+        $paymentParams['method'] = str_replace('_', ' ', $payment->getMethod());
 
         return $paymentParams;
     }
@@ -245,6 +246,10 @@ class RequestHandler
         $lineItemsParams = [];
 
         foreach ( $orderItems as $item ){
+            if ($item->getParentItem()) {
+                continue;
+            }
+
             $lineItem = [];
 
             $lineItem['sku']      = $item->getSku();
