@@ -134,7 +134,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         }
 
     }
-
+  
     private function _getPaymentDetailsFromMethod($payment)
     {
         $method = $payment->getMethod();
