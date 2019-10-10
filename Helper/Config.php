@@ -16,6 +16,8 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     const GENERAL_SCREENED_PAYMENT_METHODS = self::GENERAL . '/screened_payment_methods';
     const GENERAL_AUTO_CANCEL = self::GENERAL . '/auto_cancel';
 
+    protected $logger;
+
     protected $orderStatusesKeys = [
         'pass',
         'review',
@@ -24,45 +26,99 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     ];
 
     public function __construct(
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Framework\App\Helper\Context $context,        
         \NoFraud\Connect\Logger\Logger $logger
     ) {
-        $this->scopeConfig = $scopeConfig;
+        parent::__construct($context);
         $this->logger = $logger;
     }
 
-    public function noFraudIsDisabled()
+    public function getEnabled($storeId = null)
     {
-        return !$this->getEnabled();
+        if (is_null($storeId)) {
+            return $this->scopeConfig->getValue(self::GENERAL_ENABLED);
+        } else {
+            return $this->scopeConfig->getValue(self::GENERAL_ENABLED, 'store', $storeId);
+        }
     }
 
-    public function sandboxIsEnabled()
+    public function getApiToken($storeId = null)
     {
-        return $this->getSandboxMode();
+        if (is_null($storeId)) {
+            return $this->scopeConfig->getValue(self::GENERAL_API_TOKEN);
+        } else {
+            return $this->scopeConfig->getValue(self::GENERAL_API_TOKEN, 'store', $storeId);
+        }
     }
 
-    public function orderStatusIsIgnored( $order )
+    public function getSandboxMode($storeId = null)
     {
-        $screenedOrderStatus = $this->getScreenedOrderStatus();
+        if (is_null($storeId)) {
+            return $this->scopeConfig->getValue(self::GENERAL_SANDBOX_MODE);
+        } else {
+            return $this->scopeConfig->getValue(self::GENERAL_SANDBOX_MODE, 'store', $storeId);
+        }
+    }
 
-        if ( empty($screenedOrderStatus) ){
-            return false;
+    public function getScreenedOrderStatus($storeId = null)
+    {
+        if (is_null($storeId)) {
+             return $this->scopeConfig->getValue(self::GENERAL_SCREENED_ORDER_STATUS);
+        } else {
+            return $this->scopeConfig->getValue(self::GENERAL_SCREENED_ORDER_STATUS, 'store', $storeId);
+        }
+    }
+
+    public function getAutoCancel($storeId = null)
+    {
+        if (is_null($storeId)) {
+            return $this->scopeConfig->getValue(self::GENERAL_AUTO_CANCEL);
+        } else {
+            return $this->scopeConfig->getValue(self::GENERAL_AUTO_CANCEL, 'store', $storeId);
+        }
+    }
+
+    public function getOrderStatusPass($storeId = null)
+    {
+        if (is_null($storeId)) {
+            return $this->scopeConfig->getValue(self::ORDER_STATUSES_PASS);
+        } else {
+            return $this->scopeConfig->getValue(self::ORDER_STATUSES_PASS, 'store', $storeId);
+        }
+    }
+
+    public function getOrderStatusReview($storeId = null)
+    {
+        if (is_null($storeId)) {
+            return $this->scopeConfig->getValue(self::ORDER_STATUSES_REVIEW);
+        } else {
+            return $this->scopeConfig->getValue(self::ORDER_STATUSES_REVIEW, 'store', $storeId);
+        }
+    }
+
+    public function getCustomStatusConfig($statusName, $storeId = null)
+    {
+        if (!in_array($statusName,$this->orderStatusesKeys)) {
+            return;
         }
 
-        $orderStatus = $order->getStatus();
-       
-        if ( $orderStatus != $screenedOrderStatus ){
-            $orderId = $order->getIncrementId(); //LOGGING
-            $this->logger->info("Ignoring Order {$orderId}: status is '{$orderStatus}'; only screening orders with status '{$screenedOrderStatus}'."); //LOGGING
-            return true;
-        }
+        $path = self::ORDER_STATUSES . '/' . $statusName; 
 
-        return false;
+        if (is_null($storeId)) {
+             return $this->scopeConfig->getValue($path);
+        } else {
+             return $this->scopeConfig->getValue($path, 'store', $storeId);
+        }
     }
 
-    public function paymentMethodIsIgnored($method)
+    public function paymentMethodIsIgnored($method, $storeId = null)
     {
-        $methods = $this->scopeConfig->getValue(self::GENERAL_SCREENED_PAYMENT_METHODS);
+        if (is_null($storeId)) {
+             $methods = $this->scopeConfig->getValue(self::GENERAL_SCREENED_PAYMENT_METHODS);
+        } else {
+             $methods = $this->scopeConfig->getValue(self::GENERAL_SCREENED_PAYMENT_METHODS, 'store', $storeId);
+        }
+
         if (empty($methods)) {
             return false;
         }
@@ -73,49 +129,20 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         return true;
     }
 
-    public function getApiToken()
+    public function orderStatusIsIgnored($order, $storeId = null)
     {
-        return $this->scopeConfig->getValue(self::GENERAL_API_TOKEN);
-    }
-
-    public function getSandboxMode()
-    {
-        return $this->scopeConfig->getValue(self::GENERAL_SANDBOX_MODE);
-    }
-
-    public function getEnabled()
-    {
-        return $this->scopeConfig->getValue(self::GENERAL_ENABLED);
-    }
-
-    public function getScreenedOrderStatus()
-    {
-        return $this->scopeConfig->getValue(self::GENERAL_SCREENED_ORDER_STATUS);
-    }
-
-    public function getAutoCancel()
-    {
-        return $this->scopeConfig->getValue(self::GENERAL_AUTO_CANCEL);
-    }
-
-    public function getOrderStatusPass()
-    {
-        return $this->scopeConfig->getValue(self::ORDER_STATUSES_PASS);
-    }
-
-    public function getOrderStatusReview()
-    {
-        return $this->scopeConfig->getValue(self::ORDER_STATUSES_REVIEW);
-    }
-
-    public function getCustomStatusConfig($statusName)
-    {
-        if ( !in_array($statusName, $this->orderStatusesKeys) ){
-            return;
+        $storeId = $order->getStoreId();
+        $screenedOrderStatus = $this->getScreenedOrderStatus($storeId);
+        if (empty($screenedOrderStatus)) {
+            return false;
         }
 
-        $path = self::ORDER_STATUSES . '/' . $statusName; 
-
-        return $this->scopeConfig->getValue($path);
+        $orderStatus = $order->getStatus();
+        if ($orderStatus != $screenedOrderStatus) {
+            $orderId = $order->getIncrementId();
+            $this->logger->info("Ignoring Order $orderId: status is '$orderStatus;' only screening orders with status $screenedOrderStatus.");
+            return true;
+        }
+        return false;
     }
 }

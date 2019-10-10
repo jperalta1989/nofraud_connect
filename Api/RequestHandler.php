@@ -7,6 +7,9 @@ class RequestHandler
     const DEFAULT_AVS_CODE = 'U';
     const DEFAULT_CVV_CODE = 'U';
 
+    protected $currency;
+    protected $logger;
+
     protected $ccTypeMap = [
         'ae' => 'Amex',
         'di' => 'Discover',

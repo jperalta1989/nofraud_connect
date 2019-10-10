@@ -8,18 +8,22 @@ class OrderFraudStatus
     const REQUEST_TYPE  = 'GET';
 
     private $orders;
+    private $storeManager;
+    private $requestHandler;
     private $configHelper;
     private $apiUrl;
     private $orderProcessor;
 
     public function __construct(
         \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $orders,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \NoFraud\Connect\Api\RequestHandler $requestHandler,
         \NoFraud\Connect\Helper\Config $configHelper,
         \NoFraud\Connect\Api\ApiUrl $apiUrl,
         \NoFraud\Connect\Order\Processor $orderProcessor
     ) {
         $this->orders = $orders;
+        $this->storeManager = $storeManager;
         $this->requestHandler = $requestHandler;
         $this->configHelper = $configHelper;
         $this->apiUrl = $apiUrl;
@@ -28,11 +32,18 @@ class OrderFraudStatus
 
     public function execute() 
     {
-        $orders = $this->readOrders();
-        $this->updateOrdersFromNoFraudApiResult($orders);
+        $storeList = $this->storeManager->getStores();
+        foreach ($storeList as $store) {
+            $storeId = $store->getId();
+            if (!$this->configHelper->getEnabled($storeId)) {
+                return;
+            }
+            $orders = $this->readOrders($storeId);
+            $this->updateOrdersFromNoFraudApiResult($orders, $storeId);
+        }
     }
 
-    public function readOrders()
+    public function readOrders($storeId)
     {
         $orders = $this->orders->create()
             ->addFieldToSelect('status')
@@ -41,27 +52,32 @@ class OrderFraudStatus
             ->setOrder('status', 'desc');
 
         $select = $orders->getSelect()
-            ->where('status = \''.$this->configHelper->getOrderStatusReview().'\'');
+            ->where('store_id = ' .$storeId)
+            ->where('status = \'' . $this->configHelper->getOrderStatusReview($storeId) . '\'');
 
         return $orders;
     }
 
-    public function updateOrdersFromNoFraudApiResult($orders) 
+    public function updateOrdersFromNoFraudApiResult($orders, $storeId) 
     {
-        $apiUrl = $this->apiUrl->buildOrderApiUrl(self::ORDER_REQUEST,$this->configHelper->getApiToken());
+        $apiUrl = $this->apiUrl->buildOrderApiUrl(self::ORDER_REQUEST, $this->configHelper->getApiToken($storeId));
         foreach ($orders as $order) {
-            $orderSpecificApiUrl = $apiUrl.'/'.$order['increment_id'];
-            $response = $this->requestHandler->send(null,$orderSpecificApiUrl,self::REQUEST_TYPE);
+            try {
+                $orderSpecificApiUrl = $apiUrl.'/'.$order['increment_id'];
+                $response = $this->requestHandler->send(null, $orderSpecificApiUrl, self::REQUEST_TYPE);
 
-            if (isset($resultMap['http']['response']['body'])){
-                $newStatus = $this->orderProcessor->getCustomOrderStatus($resultMap['http']['response']);
-                $this->orderProcessor->updateOrderStatusFromNoFraudResult($newStatus, $order);
+                if (isset($response['http']['response']['body'])) {
+                    $newStatus = $this->orderProcessor->getCustomOrderStatus($response['http']['response'], $storeId);
+                    $this->orderProcessor->updateOrderStatusFromNoFraudResult($newStatus, $order);
 
-	        $order->save();
+	            $order->save();
 
-                if ($this->configHelper->getAutoCancel()) {
-                    $this->orderProcessor->handleAutoCancel($order);
+                    if ($this->configHelper->getAutoCancel($storeId) && isset($resultMap['http']['response']['body']['decision'])) {
+                        $this->orderProcessor->handleAutoCancel($order);
+                    }
                 }
+            } catch (\Exception $exception) {
+                $this->logger->logFailure($order, $exception);
             }
         }
     }

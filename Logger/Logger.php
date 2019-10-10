@@ -5,7 +5,7 @@ class Logger extends \Monolog\Logger
 {
     public function logTransactionResults($order, $payment, $resultMap)
     {
-        $orderLog['id'] = $order->getIncrementID();
+        $orderLog['id'] = $order->getIncrementId();
 
         $paymentLog['method'] = $payment->getMethod();
 
@@ -20,7 +20,7 @@ class Logger extends \Monolog\Logger
 
     public function logFailure($order, $exception)
     {
-        $orderId = $order->getIncrementID();
+        $orderId = $order->getIncrementId();
         $this->critical( "Encountered an exception while processing Order {$orderId}: \n" . (string) $exception );
     }
 

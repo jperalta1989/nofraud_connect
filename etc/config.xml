@@ -6,6 +6,7 @@
                 <enabled>0</enabled>
                 <api_token backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
                 <sandbox_enabled>0</sandbox_enabled>
+                <auto_cancel>1</auto_cancel>
             </general>
         </nofraud_connect>
     </default>

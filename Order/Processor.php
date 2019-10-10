@@ -7,14 +7,14 @@ use Magento\Framework\Serialize\Serializer\Json;
 
 class Processor
 {
-    private $logger;
-    private $configHelper;
-    private $dataHelper;
-    private $orderStatusCollection;
-    private $invoiceService;
-    private $creditmemoFactory;
-    private $creditmemoService;
-    private $stateIndex = [];
+    protected $logger;
+    protected $configHelper;
+    protected $dataHelper;
+    protected $orderStatusCollection;
+    protected $invoiceService;
+    protected $creditmemoFactory;
+    protected $creditmemoService;
+    protected $stateIndex = [];
 
     public function __construct(
         \NoFraud\Connect\Logger\Logger $logger,
@@ -34,26 +34,26 @@ class Processor
         $this->configHelper = $configHelper;
     }
 
-    public function getCustomOrderStatus($response)
+    public function getCustomOrderStatus($response, $storeId = null)
     {
-        if ( isset($response['body']['decision']) ){
+        if (isset($response['body']['decision'])) {
             $statusName = $response['body']['decision'];
         }
 
-        if ( isset($response['code']) ){
+        if (isset($response['code'])) {
             if ($response['code'] > 299) {
                 $statusName = 'error';
             }
         }
 
-        if ( isset($statusName) ){
-            return $this->configHelper->getCustomStatusConfig($statusName);
+        if (isset($statusName)) {
+            return $this->configHelper->getCustomStatusConfig($statusName, $storeId);
         }
     }
 
     public function updateOrderStatusFromNoFraudResult($noFraudOrderStatus, $order) 
     {
-        if (!empty($noFraudOrderStatus)){
+        if (!empty($noFraudOrderStatus)) {
             $newState = $this->getStateFromStatus($noFraudOrderStatus);
 
             if ($newState == Order::STATE_HOLDED) {
@@ -77,15 +77,17 @@ class Processor
         return $this->stateIndex[$state] ?? null;
     }
 
-    public function handleAutoCancel($order)
+    public function handleAutoCancel($order, $decision)
     {
-        if ($order->canInvoice()){
+        // if order failed NoFraud check, try to refund
+        if ($decision == 'fail' && $order->canInvoice()){
             $invoice = $this->invoiceService->prepareInvoice($order);
             $invoice->register();
             $invoice->save();
             $creditmemo = $this->creditmemoFactory->createByOrder($order);
             $creditmemo->setInvoice($invoice);
             $this->creditmemoService->refund($creditmemo);
+            $order->setStatus(Order::STATE_CANCELED)->setState(Order::STATE_CANCELED);
         }
     }
 }

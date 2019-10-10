@@ -4,6 +4,8 @@ namespace NoFraud\Connect\Api;
  
 class ResponseHandler
 {
+    protected $logger;
+
     public function __construct(
         \NoFraud\Connect\Logger\Logger $logger
     ) {
