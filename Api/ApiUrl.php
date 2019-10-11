@@ -7,7 +7,8 @@ class ApiUrl
     const PRODUCTION_URL = 'https://api.nofraud.com/';
     const SANDBOX_URL    = 'https://apitest.nofraud.com/';
 
-    private $configHelper;
+    protected $configHelper;
+    protected $logger;
 
     public function __construct(
         \NoFraud\Connect\Helper\Config $configHelper,
@@ -29,8 +30,8 @@ class ApiUrl
         return $apiUrl;
     }
 
-    public function whichEnvironmentUrl()
+    public function whichEnvironmentUrl($storeId = null)
     {
-        return $this->configHelper->getSandboxMode() ? self::SANDBOX_URL : self::PRODUCTION_URL;
+        return $this->configHelper->getSandboxMode($storeId) ? self::SANDBOX_URL : self::PRODUCTION_URL;
     }
 }
