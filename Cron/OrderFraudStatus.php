@@ -73,7 +73,7 @@ class OrderFraudStatus
 	            $order->save();
 
                     if ($this->configHelper->getAutoCancel($storeId) && isset($resultMap['http']['response']['body']['decision'])) {
-                        $this->orderProcessor->handleAutoCancel($order);
+                        $this->orderProcessor->handleAutoCancel($order, $resultMap['http']['response']['body']['decision']);
                     }
                 }
             } catch (\Exception $exception) {
