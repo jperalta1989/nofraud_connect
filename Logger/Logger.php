@@ -18,6 +18,18 @@ class Logger extends \Monolog\Logger
         $this->info(json_encode($info));
     }
 
+    public function logCancelTransactionResults($order, $resultMap)
+    {
+        $orderLog['id'] = $order->getIncrementId();
+
+        $info = [
+            'order' => $orderLog,
+            'api_result' => $resultMap,
+        ];
+
+        $this->info(json_encode($info));
+    }
+
     public function logFailure($order, $exception)
     {
         $orderId = $order->getIncrementId();

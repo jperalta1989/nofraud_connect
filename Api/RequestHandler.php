@@ -2,13 +2,14 @@
  
 namespace NoFraud\Connect\Api;
  
-class RequestHandler
+use NoFraud\Connect\Logger\Logger;
+
+class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandler
 {
     const DEFAULT_AVS_CODE = 'U';
     const DEFAULT_CVV_CODE = 'U';
 
     protected $currency;
-    protected $logger;
     protected $customerRepository;
     protected $history;
 
@@ -21,13 +22,15 @@ class RequestHandler
     ];
 
     public function __construct(
-        \Magento\Directory\Model\Currency $currency,
         \NoFraud\Connect\Logger\Logger $logger,
+        \Magento\Directory\Model\Currency $currency,
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Magento\Sales\Block\Order\History $history
     ) {
+
+        parent::__construct($logger);
+
         $this->currency = $currency;
-        $this->logger = $logger;
         $this->customerRepository = $customerRepository;
         $this->history = $history;
     }
@@ -36,6 +39,8 @@ class RequestHandler
      * @param \Magento\Sales\Model\Order\Payment $payment
      * @param \Magento\Sales\Model\Order $order
      * @param string $apiToken | NoFraud API Token
+     *
+     * @return array
      */
     public function build( $payment, $order, $apiToken )
     {
@@ -51,50 +56,6 @@ class RequestHandler
         $params = array_replace_recursive( $params, $paramsAdditionalInfo );
 
         return $this->scrubEmptyValues($params);
-    }
-
-    /**
-     * @param array  $params | NoFraud request object parameters
-     * @param string $apiUrl | The URL to send to
-     */
-    public function send( $params, $apiUrl, $requestType = 'POST')
-    {
-        $ch = curl_init();
-
-        if (!strcasecmp($requestType,'post')) {
-            $body = json_encode($params);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($body)));
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-        }
-
-        curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
-        curl_setopt($ch, CURLOPT_URL, $apiUrl );
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-
-        $result = curl_exec($ch);
-        $responseCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-
-        if(curl_errno($ch)){
-            $this->logger->logApiError($apiUrl, $curl_error($ch),$responseCode);
-        }
-
-        $response = [
-            'http' => [
-                'response' => [
-                    'body' => json_decode($result, true),
-                    'code' => $responseCode,
-                    'time' => curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME),
-                ],
-                'client' => [
-                    'error' => curl_error($ch),
-                ],
-            ],
-        ];
-
-        curl_close($ch);
-
-        return $this->scrubEmptyValues($response);
     }
 
     protected function buildBaseParams( $payment, $order, $apiToken )
@@ -359,25 +320,5 @@ class RequestHandler
         }
 
         return $this->scrubEmptyValues($params);
-    }
-
-
-    protected function scrubEmptyValues($array)
-    {
-        // Removes any empty values (except for 'empty' numerical values such as 0 or 00.00)
-        foreach ($array as $key => $value) {
-
-            if (is_array($value)) {
-                $value = $this->scrubEmptyValues($value);
-                $array[$key] = $value;
-            }
-
-            if ( empty($value) && !is_numeric($value) ) {
-                unset($array[$key]);
-            }
-
-        }
-
-        return $array;
     }
 }

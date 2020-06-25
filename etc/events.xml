@@ -3,4 +3,7 @@
     <event name="sales_order_payment_place_end">
         <observer name="NoFraud_Connect_Observer" instance="NoFraud\Connect\Observer\SalesOrderPaymentPlaceEnd" />
     </event>
+    <event name="order_cancel_after">
+        <observer name="NoFraud_Connect_Cancel_Order_Observer" instance="NoFraud\Connect\Observer\OrderCancelAfter" />
+    </event>
 </config>
