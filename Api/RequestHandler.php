@@ -12,6 +12,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
     protected $currency;
     protected $customerRepository;
     protected $history;
+    protected $customerSession;
 
     protected $ccTypeMap = [
         'ae' => 'Amex',
@@ -25,7 +26,8 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         \NoFraud\Connect\Logger\Logger $logger,
         \Magento\Directory\Model\Currency $currency,
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
-        \Magento\Sales\Block\Order\History $history
+        \Magento\Sales\Block\Order\History $history,
+        \Magento\Customer\Model\Session $customerSession
     ) {
 
         parent::__construct($logger);
@@ -33,6 +35,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         $this->currency = $currency;
         $this->customerRepository = $customerRepository;
         $this->history = $history;
+        $this->customerSession = $customerSession;
     }
 
     /**
@@ -98,18 +101,20 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         $customer = $this->customerRepository->get($order->getCustomerEmail(), $order->getStoreId());
         if(!empty($customer->getId())){
             $customerParams['joined_on'] = date('m/d/Y', strtotime($customer->getCreatedAt()));
+            $this->customerSession->setCustomerId($customer->getId());
         }
 
-        $orderHistory = $this->history->getOrders()->getItems();
+        $orderHistory = $this->history->getOrders();
         if(!empty($orderHistory)){
+            $orders = $orderHistory->getItems();
             $totalPurchaseValue = 0;
-            foreach ($orderHistory as $order){
+            foreach ($orders as $order){
                 $totalPurchaseValue += $order->getGrandTotal();
             }
-            $lastPurchaseOrder = reset($orderHistory);
+            $lastPurchaseOrder = reset($orders);
 
             $customerParams['last_purchase_date'] = date('m/d/Y', strtotime($lastPurchaseOrder->getCreatedAt()));
-            $customerParams['total_previous_purchases'] = sizeof($orderHistory);
+            $customerParams['total_previous_purchases'] = sizeof($orders);
             $customerParams['total_purchase_value'] = $totalPurchaseValue;
         }
 
