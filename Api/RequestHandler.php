@@ -8,6 +8,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
 {
     const DEFAULT_AVS_CODE = 'U';
     const DEFAULT_CVV_CODE = 'U';
+    const BRAINTREE_CODE = 'braintree';
 
     protected $currency;
     protected $customerRepository;
@@ -297,7 +298,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
 
                 break;
 
-            case \Magento\Braintree\Model\Ui\ConfigProvider::CODE:
+            case self::BRAINTREE_CODE:
 
                 $last4    = substr( $info['cc_number'] ?? [], -4 );
                 $cardType = $info['cc_type'] ?? NULL;
