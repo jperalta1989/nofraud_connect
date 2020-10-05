@@ -97,9 +97,12 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         $this->logger->logTransactionResults($order, $payment, $resultMap);
 
         try {
+            // Prepare order data from result map
+            $data = $this->responseHandler->getTransactionData($resultMap);
+
             // For all API responses (official results from NoFraud, client errors, etc.),
             // add an informative comment to the order in Magento admin
-            $comment = $this->responseHandler->buildComment($resultMap);
+            $comment = $data['comment'];
             if (!empty($comment)) {
                 $order->addStatusHistoryComment($comment);
             }
@@ -115,6 +118,8 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
 
             // Order has been screened
             $order->setNofraudScreened(true);
+            $order->setNofraudStatus($data['status']);
+            $order->setNofraudTransactionId($data['id']);
 
             // Finally, save order
             $order->save();

@@ -10,5 +10,14 @@
                 <label translate="true">NoFraud Screened</label>
             </settings>
         </column>
+        <column name="nofraud_status" class="NoFraud\Connect\Ui\Component\Listing\Column\Status" component="NoFraud_Connect/js/grid/cells/link">
+            <settings>
+                <visible>true</visible>
+                <label translate="true">NoFraud Status</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <sortable>false</sortable>
+                <disableAction>true</disableAction>
+            </settings>
+        </column>
     </columns>
 </listing>

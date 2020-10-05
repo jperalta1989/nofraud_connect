@@ -12,11 +12,10 @@ class ResponseHandler
         $this->logger = $logger;
     }
 
-    public function buildComment( $resultMap )
+    public function getTransactionData( $resultMap )
     {
         if ( isset($resultMap['http']['client']['error']) ){
-            $comment = "Failed to connect with the NoFraud service due to an error.";
-            return $comment;
+            return $this->_prepareErrorData("Failed to connect with the NoFraud service due to an error.");
         }
 
         if ( isset($resultMap['http']['response']['body']) ){
@@ -46,7 +45,7 @@ class ResponseHandler
             $comment .= "<br>This transaction is being looked into on your behalf.";
         }
 
-        return $comment;
+        return $this->_prepareData($comment, $decision, $id);
     }
 
     protected function commentFromNoFraudErrors( $errors )
@@ -58,7 +57,7 @@ class ResponseHandler
             $comment .= "<br>\"{$error}\"" ;
         }
 
-        return $comment;
+        return $this->_prepareErrorData($comment);
     }
 
     protected function noFraudLink( $transactionId, $linkText )
@@ -78,7 +77,19 @@ class ResponseHandler
                 break;
         }
 
-        return $comment;
+        return $this->_prepareErrorData($comment);
+    }
+
+    private function _prepareErrorData($comment){
+        return $this->_prepareData($comment, 'Error', null);
+    }
+
+    private function _prepareData($comment, $status, $id){
+        return array(
+            'comment' => $comment,
+            'status' => $status,
+            'id' => $id,
+        );
     }
 
 }

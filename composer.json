@@ -2,7 +2,7 @@
   "name": "nofraud/connect",
   "description": "Sends your transactions to NoFraud for verification of no fraud.",
   "type": "magento2-module",
-  "version": "0.2.8",
+  "version": "0.3.0",
   "license": [
     "OSL-3.0"
   ],

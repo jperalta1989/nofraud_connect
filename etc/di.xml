@@ -28,6 +28,8 @@
         <arguments>
             <argument name="columns">
                 <item name="nofraud_screened" xsi:type="string">sales_order.nofraud_screened</item>
+                <item name="nofraud_status" xsi:type="string">sales_order.nofraud_status</item>
+                <item name="nofraud_transaction_id" xsi:type="string">sales_order.nofraud_transaction_id</item>
             </argument>
         </arguments>
     </virtualType>
