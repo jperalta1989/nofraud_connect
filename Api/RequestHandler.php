@@ -12,6 +12,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
 
     protected $currency;
     protected $customerRepository;
+    protected $customer;
     protected $history;
     protected $customerSession;
 
@@ -27,6 +28,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         \NoFraud\Connect\Logger\Logger $logger,
         \Magento\Directory\Model\Currency $currency,
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
+        \Magento\Customer\Model\Customer $customer,
         \Magento\Sales\Block\Order\History $history,
         \Magento\Customer\Model\Session $customerSession
     ) {
@@ -35,6 +37,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
 
         $this->currency = $currency;
         $this->customerRepository = $customerRepository;
+        $this->customer = $customer;
         $this->history = $history;
         $this->customerSession = $customerSession;
     }
@@ -99,6 +102,10 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
 
         $customerParams['email'] = $order->getCustomerEmail();
 
+        if(!$this->_doesCustomerExist($order->getCustomerEmail(), $order->getStoreId())){
+            return $customerParams;
+        }
+
         $customer = $this->customerRepository->get($order->getCustomerEmail(), $order->getStoreId());
         if(!empty($customer->getId())){
             $customerParams['joined_on'] = date('m/d/Y', strtotime($customer->getCreatedAt()));
@@ -120,6 +127,21 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         }
 
         return $customerParams;
+    }
+
+    private function _doesCustomerExist($email, $websiteId = null){
+        $customer = $this->customer;
+        if ($websiteId) {
+            $customer->setWebsiteId($websiteId);
+        }
+
+        $customer->loadByEmail($email);
+
+        if ($customer->getId()) {
+            return true;
+        }
+
+        return false;
     }
 
     protected function buildOrderParams( $order )
