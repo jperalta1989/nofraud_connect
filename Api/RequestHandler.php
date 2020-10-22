@@ -1,7 +1,7 @@
 <?php
- 
+
 namespace NoFraud\Connect\Api;
- 
+
 use NoFraud\Connect\Logger\Logger;
 
 class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandler
@@ -113,8 +113,8 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         }
 
         $orderHistory = $this->history->getOrders();
-        if(!empty($orderHistory)){
-            $orders = $orderHistory->getItems();
+        $orders = $orderHistory->getItems();
+        if(!empty($orders)){
             $totalPurchaseValue = 0;
             foreach ($orders as $order){
                 $totalPurchaseValue += $order->getGrandTotal();
@@ -160,7 +160,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         $cc['cardType']       = $this->formatCcType( $payment->getCcType() );
         $cc['cardNumber']     = $payment->getCcNumber();
         $cc['expirationDate'] = $this->buildCcExpDate($payment);
-        $cc['cardCode']       = $payment->getCcCid(); 
+        $cc['cardCode']       = $payment->getCcCid();
 
         $cc['last4']          = $this->decryptLast4($payment);
 
@@ -236,7 +236,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         }
 
         $addressParams = [];
-        
+
         $addressParams['firstName'] = $address->getFirstname();
         $addressParams['lastName']  = $address->getLastname();
         $addressParams['company']   = $address->getCompany();
