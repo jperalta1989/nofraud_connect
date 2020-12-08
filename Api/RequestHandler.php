@@ -2,6 +2,7 @@
 
 namespace NoFraud\Connect\Api;
 
+use Magento\Framework\Simplexml\Element;
 use NoFraud\Connect\Logger\Logger;
 
 class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandler
@@ -9,6 +10,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
     const DEFAULT_AVS_CODE = 'U';
     const DEFAULT_CVV_CODE = 'U';
     const BRAINTREE_CODE = 'braintree';
+    const MAGEDELIGHT_AUTHNET_CIM_METHOD_CODE = 'md_authorizecim';
 
     protected $currency;
     protected $customerRepository;
@@ -18,6 +20,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
 
     protected $ccTypeMap = [
         'ae' => 'Amex',
+        'americanexpress' => 'Amex',
         'di' => 'Discover',
         'mc' => 'Mastercard',
         'vs' => 'Visa',
@@ -337,6 +340,22 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
                     ],
                     "avsResultCode" => $sAvs . $zAvs,
                     "cvvResultCode" => $cvv,
+                ];
+
+                break;
+
+            case self::MAGEDELIGHT_AUTHNET_CIM_METHOD_CODE:
+                $avs = $payment->getCcAvsStatus();
+                $cid = $payment->getCcCidStatus();
+
+                if(!is_string($cid) && $cid instanceof Element)
+                {
+                    $cid = $cid->asArray();
+                }
+
+                $params = [
+                    "avsResultCode" => $avs,
+                    "cvvResultCode" => $cid,
                 ];
 
                 break;
