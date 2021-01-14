@@ -16,8 +16,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
     protected $currency;
     protected $customerRepository;
     protected $customer;
-    protected $history;
-    protected $customerSession;
+    protected $orderCollectionFactory;
 
     protected $ccTypeMap = [
         'ae' => 'Amex',
@@ -33,8 +32,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         \Magento\Directory\Model\Currency $currency,
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Magento\Customer\Model\Customer $customer,
-        \Magento\Sales\Block\Order\History $history,
-        \Magento\Customer\Model\Session $customerSession
+        \Magento\Sales\Model\ResourceModel\Order\CollectionFactoryInterface $orderCollectionFactory
     ) {
 
         parent::__construct($logger);
@@ -42,8 +40,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         $this->currency = $currency;
         $this->customerRepository = $customerRepository;
         $this->customer = $customer;
-        $this->history = $history;
-        $this->customerSession = $customerSession;
+        $this->orderCollectionFactory = $orderCollectionFactory;
     }
 
     /**
@@ -113,11 +110,9 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         $customer = $this->customerRepository->get($order->getCustomerEmail(), $order->getStoreId());
         if(!empty($customer->getId())){
             $customerParams['joined_on'] = date('m/d/Y', strtotime($customer->getCreatedAt()));
-            $this->customerSession->setCustomerId($customer->getId());
         }
 
-        $orderHistory = $this->history->getOrders();
-        $orders = $orderHistory->getItems();
+        $orders = $this->getCustomerOrders($customer->getId());
         if(!empty($orders)){
             $totalPurchaseValue = 0;
             foreach ($orders as $order){
@@ -146,6 +141,18 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         }
 
         return false;
+    }
+
+    protected function getCustomerOrders($customerId)
+    {
+        return $this->orderCollectionFactory->create(
+            $customerId
+        )->addFieldToSelect(
+            '*'
+        )->setOrder(
+            'created_at',
+            'desc'
+        )->getItems();
     }
 
     protected function buildOrderParams( $order )
