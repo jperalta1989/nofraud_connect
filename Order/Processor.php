@@ -81,13 +81,18 @@ class Processor
     {
         // if order failed NoFraud check, try to refund
         if ($decision == 'fail' && $order->canInvoice()){
-            $invoice = $this->invoiceService->prepareInvoice($order);
-            $invoice->register();
-            $invoice->save();
-            $creditmemo = $this->creditmemoFactory->createByOrder($order);
-            $creditmemo->setInvoice($invoice);
-            $this->creditmemoService->refund($creditmemo);
-            $order->setStatus(Order::STATE_CANCELED)->setState(Order::STATE_CANCELED);
+            if($order->getBaseTotalPaid() > 0){
+                $invoice = $this->invoiceService->prepareInvoice($order);
+                $invoice->register();
+                $invoice->save();
+                $creditmemo = $this->creditmemoFactory->createByOrder($order);
+                $creditmemo->setInvoice($invoice);
+                $this->creditmemoService->refund($creditmemo);
+                $order->setStatus(Order::STATE_CANCELED)->setState(Order::STATE_CANCELED);
+            } else{
+                $order->cancel();
+            }
+
         }
     }
 }
