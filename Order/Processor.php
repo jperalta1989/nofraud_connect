@@ -15,6 +15,10 @@ class Processor
     protected $creditmemoFactory;
     protected $creditmemoService;
     protected $stateIndex = [];
+    protected $orderManagement;
+    protected $orderStatusFactory;
+
+    const CYBERSOURCE_METHOD_CODE = 'md_cybersource';
 
     public function __construct(
         \NoFraud\Connect\Logger\Logger $logger,
@@ -23,7 +27,9 @@ class Processor
         \Magento\Sales\Model\Order\CreditmemoFactory $creditmemoFactory,
         \Magento\Sales\Model\Service\CreditmemoService $creditmemoService,
         \Magento\Sales\Model\ResourceModel\Order\Status\CollectionFactory $orderStatusCollection,
-        \NoFraud\Connect\Helper\Config $configHelper
+        \NoFraud\Connect\Helper\Config $configHelper,
+        \Magento\Sales\Api\OrderManagementInterface $orderManagement,
+        \Magento\Sales\Model\Order\StatusFactory $orderStatusFactory
     ) {
         $this->logger = $logger;
         $this->dataHelper = $dataHelper;
@@ -32,6 +38,8 @@ class Processor
         $this->creditmemoService = $creditmemoService;
         $this->orderStatusCollection = $orderStatusCollection;
         $this->configHelper = $configHelper;
+        $this->orderManagement = $orderManagement;
+        $this->orderStatusFactory = $orderStatusFactory;
     }
 
     public function getCustomOrderStatus($response, $storeId = null)
@@ -81,6 +89,13 @@ class Processor
     {
         // if order failed NoFraud check, try to refund
         if ($decision == 'fail' && $order->canInvoice()){
+
+            // Handle custom cancel for Payment Method if needed
+            if($this->_runCustomAutoCancel($order)){
+                return;
+            }
+
+            // Run Default refund & cancel logic
             if($order->getBaseTotalPaid() > 0){
                 $invoice = $this->invoiceService->prepareInvoice($order);
                 $invoice->register();
@@ -94,5 +109,31 @@ class Processor
             }
 
         }
+    }
+
+    private function _runCustomAutoCancel($order){
+        $isCustom = true;
+        $method = $order->getPayment()->getMethod();
+
+        switch ($method){
+            case (self::CYBERSOURCE_METHOD_CODE):
+                $this->_handleCyberSourceAutoCanel($order);
+                break;
+            default:
+                $isCustom = false;
+                break;
+        }
+
+        return $isCustom;
+    }
+
+    private function _handleCyberSourceAutoCanel($order){
+        $this->orderManagement->cancel($order->getEntityId());
+
+        $status = $this->orderStatusFactory->create()->loadDefaultByState(Order::STATE_CANCELED)->getStatus();
+        $order->setState(Order::STATE_CANCELED);
+        $order->setStatus($status);
+
+        $order->save();
     }
 }
