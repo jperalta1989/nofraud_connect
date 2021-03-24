@@ -173,7 +173,9 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         $cc['expirationDate'] = $this->buildCcExpDate($payment);
         $cc['cardCode']       = $payment->getCcCid();
 
-        $cc['last4']          = $this->decryptLast4($payment);
+        if ($last4 = $this->decryptLast4($payment)) {
+            $cc['last4'] = $last4;
+        }
 
         $paymentParams = [];
 
@@ -191,7 +193,7 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
             $last4 = $payment->decrypt($last4);
         }
 
-        if ( strlen($last4) == 4 ){
+        if (strlen($last4) == 4 && ctype_digit($last4)) {
             return $last4;
         }
     }
