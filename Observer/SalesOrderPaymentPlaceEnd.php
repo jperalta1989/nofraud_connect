@@ -15,6 +15,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
     protected $invoiceService;
     protected $creditmemoFactory;
     protected $creditmemoService;
+    protected $_registry;
 
     public function __construct(
         \NoFraud\Connect\Helper\Config $configHelper,
@@ -27,7 +28,8 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Sales\Model\Order\CreditmemoFactory $creditmemoFactory,
-        \Magento\Sales\Model\Service\CreditmemoService $creditmemoService
+        \Magento\Sales\Model\Service\CreditmemoService $creditmemoService,
+        \Magento\Framework\Registry $registry
     ) {
         $this->configHelper = $configHelper;
         $this->requestHandler = $requestHandler;
@@ -40,6 +42,7 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         $this->invoiceService = $invoiceService;
         $this->creditmemoFactory = $creditmemoFactory;
         $this->creditmemoService = $creditmemoService;
+        $this->_registry = $registry;
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
@@ -71,11 +74,13 @@ class SalesOrderPaymentPlaceEnd implements \Magento\Framework\Event\ObserverInte
         //
         // Some payment processors like Authorize.net may cause this Event to fire
         // multiple times, but the logic below this point should not be executed
-        // unless the Payment has a `last_trans_id` attribute.
+        // We use the registry to keep track of the initial execution of the event
         //
-        if (!$payment->getLastTransId() && !$payment->getMethodInstance()->isOffline()) {
+        if ($this->_registry->registry('afterOrderSaveNoFraudExecuted') && !$payment->getMethodInstance()->isOffline()) {
             return;
         }
+        // Register afterOrderSaveNoFraudExecuted on the first run to only allow transacions to be screened once
+        $this->_registry->register('afterOrderSaveNoFraudExecuted', true);
 
         // Get NoFraud Api Token
         $apiToken = $this->configHelper->getApiToken($storeId);
