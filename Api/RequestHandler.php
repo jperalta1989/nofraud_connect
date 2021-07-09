@@ -94,6 +94,10 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
             $baseParams['cvvResultCode'] = $payment->getCcCidStatus();
         }
 
+        if ($payment->getMethod() === 'chcybersource' && $payment->getAdditionalInformation('auth_avs_code')) {
+            $baseParams['avsResultCode'] = $payment->getAdditionalInformation('auth_avs_code');
+        }
+
         return $baseParams;
     }
 
@@ -175,6 +179,13 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
 
         if ($last4 = $this->decryptLast4($payment)) {
             $cc['last4'] = $last4;
+        }
+
+        if ($payment->getMethod() === 'chcybersource' && $payment->getAdditionalInformation('cardNumber')) {
+            $bin = substr($payment->getAdditionalInformation('cardNumber'), 0, 6);
+            if (strlen($bin) == 6 && ctype_digit($bin)) {
+                $cc['bin'] = $bin;
+            }
         }
 
         $paymentParams = [];
@@ -391,3 +402,4 @@ class RequestHandler extends \NoFraud\Connect\Api\Request\Handler\AbstractHandle
         return $this->scrubEmptyValues($params);
     }
 }
+
